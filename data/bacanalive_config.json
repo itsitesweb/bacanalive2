@@ -1,0 +1,611 @@
+// data/bacanalive_config.json
+{
+  "version": "2.5.0-standalone-local",
+  "savedAt": "2026-09-23T14:59:15.322Z",
+  "userProfile": {
+    "displayName": "Trader Local Pro",
+    "role": "admin",
+    "status": "approved",
+    "crawlerToken": "footstats-crawler-live-key-99",
+    "mode": "local_standalone",
+    "uid": "local-standalone-user-01",
+    "email": "local.admin@footstats.pro",
+    "createdAt": "2026-09-09T15:45:59.673Z",
+    "lastLoginAt": "2026-09-09T15:45:59.673Z"
+  },
+  "preferences": {
+    "viewMode": "grid",
+    "sortOption": "tier",
+    "soundEnabled": true,
+    "customMatchOrder": [],
+    "leagueFilter": "all",
+    "favoriteMatchIds": []
+  },
+  "noiseReduction": {
+    "hideFinishedMatches": true,
+    "mutedMatchIds": {},
+    "enabledCategories": {
+      "imminent_goal": true,
+      "back_dominant": true,
+      "triple_debt": true,
+      "goal_debt_over": true,
+      "corners": true,
+      "btts_ambas": true,
+      "pressao_blitz": true,
+      "cards": true,
+      "under_value": true,
+      "virada_turnaround": true,
+      "cashout": true
+    },
+    "selectedMatchFilter": "all"
+  },
+  "operationalConfig": {
+    "chancesPerGoalRatio": 2.5,
+    "ccRateMaxMinutes": 15,
+    "ccRateForteMaxMinutes": 12,
+    "debtMarginXG": 1.5,
+    "imminentGoalThresholdPct": 50,
+    "minAlertProbabilityPct": 50,
+    "maxAlertProbabilityPct": 100,
+    "enableCodigo31": false,
+    "enableTripleDebt": true,
+    "tripleDebtConfig": {
+      "enabled": true,
+      "minMinute": 10,
+      "debtMarginXG": 1.5,
+      "chancesPerGoalRatio": 2.5,
+      "minUnilateralCc": 3,
+      "minBilateralCc": 4,
+      "minBilateralXg": 1,
+      "minBilateralXgot": 1
+    },
+    "enablePressaoVendavel": true,
+    "pressaoVendavelConfig": {
+      "enabled": true,
+      "minMinute": 25,
+      "maxMinute": 70,
+      "minXg": 1,
+      "minCc": 2,
+      "minXgot": 0.8,
+      "maxOppXg": 0.7,
+      "minPossessionPct": 60,
+      "minSotPct": 0.35,
+      "maxDeficitGoals": 1
+    },
+    "enableDominantTrailing": true,
+    "dominantTrailingConfig": {
+      "enabled": true,
+      "maxTrailingGoals": 1,
+      "minPressure": 65,
+      "minDangerousAttacksLast10": 6,
+      "minShotsOnTarget": 3,
+      "minMinute": 15,
+      "maxMinute": 85,
+      "requireOnlyOneReactionCriteria": true,
+      "brutalPressureThreshold": 85,
+      "strongPressureThreshold": 68,
+      "superiorityMetric": "cc_or_xg"
+    },
+    "enableSuperBackDominante": true,
+    "superBackDominanteConfig": {
+      "enabled": true,
+      "minMinute": 20,
+      "maxMinute": 82,
+      "minXg": 0.95,
+      "minCc": 2,
+      "maxOppXg": 0.85,
+      "minPressure": 70,
+      "minDangerousAttacksLast10": 6,
+      "minShotsOnTarget": 3,
+      "maxDeficitGoals": 1,
+      "allowDraw": true,
+      "postGoalCooldownMinutes": 3
+    },
+    "enableGoalDebtClassic": true,
+    "goalDebtClassicConfig": {
+      "enabled": true,
+      "minDebtGoals": 1.5,
+      "minMinute": 20,
+      "maxMinute": 85,
+      "minTotalXg": 2,
+      "minXgDiff": 0.8,
+      "minDominantDebt": 0.7,
+      "chancesPerGoalRatio": 2.5,
+      "blockIfWinningBy2Plus": true,
+      "blockIfDebtPaid": true,
+      "cooldownSecondsAfterGoal": 180,
+      "postGoalCooldownMinutes": 3
+    },
+    "enableHalfTimeValue": true,
+    "halfTimeValueConfig": {
+      "enabled": true,
+      "minMinute": 30,
+      "maxMinute": 45,
+      "minCombinedPressure": 110,
+      "minDominantPressure": 65,
+      "minTotalCc": 1,
+      "minTotalXg": 0.7,
+      "minDangerousAttacksLast10": 5,
+      "maxTotalGoals": 1,
+      "targetMarket": "OVER_HT"
+    },
+    "enableV12OverBack": true,
+    "v12Config": {
+      "overPremium": {
+        "enabled": true,
+        "minMinute": 36,
+        "maxMinute": 50,
+        "minTotalCc": 3,
+        "maxCcRate": 15,
+        "minTeamCc": 1
+      },
+      "overBilateralForte": {
+        "enabled": true,
+        "minMinute": 36,
+        "maxMinute": 65,
+        "minTotalCc": 4,
+        "maxCcRate": 15,
+        "minTeamCc": 2
+      },
+      "overGolLimite": {
+        "enabled": true,
+        "minMinute": 76,
+        "maxMinute": 83,
+        "minTotalCc": 7,
+        "minTeamCc": 2,
+        "minScoreDiff": 1
+      },
+      "backT1Main": {
+        "enabled": true,
+        "minMinute": 36,
+        "maxMinute": 50,
+        "minDomCc": 3,
+        "maxOppCc": 0,
+        "minDomXgot": 0.5
+      }
+    },
+    "enableImminentGoal": true,
+    "imminentGoalConfig": {
+      "enabled": true,
+      "windowMinutes": 5,
+      "minAvgPressure": 75,
+      "minConsistencyPct": 80,
+      "pointThreshold": 70,
+      "minMinute": 20,
+      "minDangerousAttacks": 8,
+      "minShots": 2,
+      "extremePressureBypass": 85,
+      "minMinute2T": 55,
+      "cutoff1T": 38,
+      "cutoff2T": 82,
+      "minDangerousAttacksPerMin": 1.6,
+      "minTargetOdd": 1.5
+    },
+    "enableTrendAlert": true,
+    "trendAlertWindowMinutes": 10,
+    "trendAlertMinAvgPressure": 70,
+    "trendAlertMinConsistencyPct": 70,
+    "trendAlertMinMinute": 20,
+    "trendAlertPointThreshold": 65,
+    "superPressureConfig": {
+      "enabled": true,
+      "minAvgPressure": 70,
+      "minConsistencyPct": 70,
+      "windowMinutes": 10,
+      "minMinute": 20,
+      "pointThreshold": 65,
+      "minFinalizations": 2,
+      "cutoff1T": 38,
+      "cutoff2T": 82,
+      "minTargetOdd1T": 1.6,
+      "minTargetOdd2T": 1.7
+    },
+    "enablePressaoCantosBlitz": true,
+    "enableAmbasMarcamBTTS": true,
+    "ambasMarcamConfig": {
+      "enabled": true,
+      "minMinute": 18,
+      "maxMinute": 86,
+      "minHomeXg": 0.35,
+      "minAwayXg": 0.35,
+      "minTotalXg": 1.1,
+      "minHomeAttacks10m": 3,
+      "minAwayAttacks10m": 3,
+      "minHomeShots10m": 1,
+      "minAwayShots10m": 1,
+      "minHomePressure": 45,
+      "minAwayPressure": 45,
+      "minCombinedPressure": 100,
+      "minProbabilityPct": 68,
+      "blockIfBothScored": true,
+      "blockIfBlowout": true,
+      "windowMinutes": 10
+    },
+    "blitzCornerWindowMinutes": 8,
+    "blitzMinCornersInWindow": 2,
+    "blitzMinTotalCorners": 6,
+    "blitzMinMinute": 60,
+    "postGoalCooldownMinutes": 3,
+    "crawlerStartupCooldownMinutes": 3,
+    "crawlerConfig": {
+      "mode": "node",
+      "maxWatchlistSize": 15,
+      "tier3ReservedSlots": 2,
+      "discoveryIntervalSeconds": 180,
+      "concurrentWorkers": 4,
+      "routeResourceBlock": true,
+      "enableBackgroundDiscovery": true,
+      "autoPruneMinutes": 30,
+      "noStatsBackoffMinutes": 10,
+      "minEntryMinute": 20,
+      "maxEntryMinute": 83,
+      "antiSpamCooldownMinutes": 5,
+      "startupCooldownMinutes": 3,
+      "matchReadTimeoutMs": 5000,
+      "discoveryTimeoutMs": 12000,
+      "excludeEsoccer": true,
+      "excludeWomen": true,
+      "excludeYouthUnder": true,
+      "customExcludedKeywords": [],
+      "tierFilter": {
+        "enableTier0Signals": true,
+        "enableTier05PremiumLeagues": true,
+        "enableTier12Window": true,
+        "enableTier3Rotation": true,
+        "enableTier1": true,
+        "enableTier2": true,
+        "enableTier3": true,
+        "enableTier4": true
+      }
+    },
+    "soundAlertsEnabled": true,
+    "minMinuteAlert": 3,
+    "maxMinuteAlert": 85,
+    "viteDebugMode": false,
+    "enableRaceToCorners": true,
+    "enableJogoQuenteCards": true,
+    "enableRiscoExpulsao": true,
+    "enableUnderValue": true,
+    "enableViradaImprovavel": true,
+    "enableCashoutProativo": true,
+    "underValueMinMinute": 25,
+    "underValueMaxMinute": 78,
+    "underValueMaxXg": 0.6,
+    "underValueMaxSot": 2,
+    "primaryBookmaker": "betano",
+    "enabledBookmakers": [
+      "bet365",
+      "betfair",
+      "pinnacle",
+      "betano",
+      "esportivabet",
+      "sportingbet",
+      "kto",
+      "superbet",
+      "1xbet"
+    ],
+    "bookmakerCredentials": {
+      "bet365": {
+        "bookmakerId": "bet365",
+        "name": "Bet365",
+        "enabled": true,
+        "apiKey": "b365_live_api_99a8b7c6d5e4f3a2",
+        "environment": "production",
+        "connectionStatus": "connected",
+        "lastTested": "2026-08-21T09:15:00.000Z",
+        "latencyMs": 38,
+        "notes": "API Sportsbook Live & Mercados Asiáticos"
+      },
+      "betfair": {
+        "bookmakerId": "betfair",
+        "name": "Betfair Exchange",
+        "enabled": true,
+        "apiKey": "bfair_app_key_88f9e0a1b2c3d4e5",
+        "apiSecret": "bfair_session_token_live",
+        "environment": "production",
+        "connectionStatus": "connected",
+        "lastTested": "2026-08-21T09:15:00.000Z",
+        "latencyMs": 42,
+        "notes": "Bolsa Esportiva & Liquidez Back/Lay em tempo real"
+      },
+      "pinnacle": {
+        "bookmakerId": "pinnacle",
+        "name": "Pinnacle",
+        "enabled": true,
+        "apiKey": "pinn_sharp_key_77e6d5c4b3a2f1e0",
+        "environment": "production",
+        "connectionStatus": "connected",
+        "lastTested": "2026-08-21T09:15:00.000Z",
+        "latencyMs": 29,
+        "notes": "Sharp Bookmaker com menor margem e maiores limites"
+      },
+      "betano": {
+        "bookmakerId": "betano",
+        "name": "Betano",
+        "enabled": true,
+        "apiKey": "beta_live_feed_66d5c4b3a2f1e099",
+        "environment": "production",
+        "connectionStatus": "connected",
+        "lastTested": "2026-08-21T09:15:00.000Z",
+        "latencyMs": 51,
+        "notes": "SuperOdds & Mercados Especiais de Estatísticas"
+      },
+      "esportivabet": {
+        "bookmakerId": "esportivabet",
+        "name": "Esportiva Bet",
+        "enabled": true,
+        "apiKey": "espb_live_api_44a3b2c1d0",
+        "environment": "production",
+        "connectionStatus": "connected",
+        "lastTested": "2026-08-21T09:20:00.000Z",
+        "latencyMs": 44,
+        "notes": "Casa nacional com saques rápidos via PIX, odds turbinadas e mercados ao vivo"
+      },
+      "sportingbet": {
+        "bookmakerId": "sportingbet",
+        "name": "Sportingbet",
+        "enabled": false,
+        "apiKey": "",
+        "environment": "sandbox",
+        "connectionStatus": "unconfigured",
+        "notes": "Sportsbook Tradicional com Mercados de Gols"
+      },
+      "kto": {
+        "bookmakerId": "kto",
+        "name": "KTO",
+        "enabled": false,
+        "apiKey": "",
+        "environment": "sandbox",
+        "connectionStatus": "unconfigured",
+        "notes": "Mercados Brasileiros e Rápidos"
+      },
+      "superbet": {
+        "bookmakerId": "superbet",
+        "name": "Superbet",
+        "enabled": false,
+        "apiKey": "",
+        "environment": "sandbox",
+        "connectionStatus": "unconfigured",
+        "notes": "SuperPlacar e Cotações Turbinadas"
+      },
+      "1xbet": {
+        "bookmakerId": "1xbet",
+        "name": "1xBet",
+        "enabled": false,
+        "apiKey": "",
+        "environment": "sandbox",
+        "connectionStatus": "unconfigured",
+        "notes": "Ampla cobertura de ligas alternativas"
+      }
+    },
+    "enableGoalAlerts": false,
+    "showGoalAlerts": false
+  },
+  "alertRules": [
+    {
+      "id": "rule-trend-super-pressure",
+      "name": "📈 Trend Alert: Super Pressão Contínua",
+      "description": "Alerta unificado quando qualquer equipe sustenta blitz e super pressão contínua (>=70% de média com consistência >=70%) no histórico do momentum em 10m.",
+      "matchId": "all",
+      "enabled": true,
+      "logic": "AND",
+      "conditions": [
+        {
+          "metric": "pressureTrendWindow",
+          "operator": ">=",
+          "value": 70,
+          "windowMinutes": 10
+        },
+        {
+          "metric": "minute",
+          "operator": ">=",
+          "value": 20
+        }
+      ],
+      "severity": "opportunity",
+      "soundEnabled": true,
+      "browserNotification": true,
+      "messageTemplate": "📈 TREND ALERT: {dominantTeam} mantém super pressão contínua ({dominantPressure}% em {pressureWindow}m) aos {minute}'! Probabilidade elevada de gol (Placar: {score}).",
+      "triggerCount": 3,
+      "lastTriggered": "2026-09-23T14:54:51.069Z",
+      "minFrequencyMinutes": 5
+    },
+    {
+      "id": "rule-diagnostico-classico",
+      "name": "⚡ Diagnóstico Clássico: Dívida de Gols & Divergência de xG",
+      "description": "Alerta unificado de dívida de gols e assimetria estatística. Detecta quando o volume acumulado de chances claras ou xG supera o placar real (dívida de gols para Over), ou quando há ampla divergência de xG entre as equipes (>1.0) com atraso de conversão no placar.",
+      "matchId": "all",
+      "enabled": true,
+      "logic": "AND",
+      "conditions": [
+        {
+          "metric": "debtGoals",
+          "operator": ">=",
+          "value": 1
+        },
+        {
+          "metric": "minute",
+          "operator": ">=",
+          "value": 20
+        },
+        {
+          "metric": "totalXg",
+          "operator": ">=",
+          "value": 1.2
+        }
+      ],
+      "severity": "opportunity",
+      "soundEnabled": true,
+      "browserNotification": true,
+      "messageTemplate": "⚡ DIAGNÓSTICO CLÁSSICO: Dívida de {debtGoals} gol(s) aos {minute}'! {dominantTeam} ({higherXg} xG) x ({lowerXg} xG) {underdogTeam} (dif. +{xgDiff}, total {totalXg} xG) para placar {score}. Probabilidade elevada de GOL/OVER.",
+      "triggerCount": 0,
+      "minFrequencyMinutes": 5
+    },
+    {
+      "id": "rule-trinca-de-dividas",
+      "name": "💎 Trinca de Dívidas: CC + xG + xGOT Confluentes",
+      "description": "Alerta transferido do Terminal Python (Regra 2). Confluência matemática perfeita: Chances Claras atrasadas, saldo de xG não convertido e xGOT no alvo acumulado acima do placar real.",
+      "matchId": "all",
+      "enabled": true,
+      "logic": "AND",
+      "conditions": [
+        {
+          "metric": "tripleDebtFormed",
+          "operator": "==",
+          "value": 1
+        },
+        {
+          "metric": "minute",
+          "operator": ">=",
+          "value": 15
+        }
+      ],
+      "severity": "critical",
+      "soundEnabled": true,
+      "browserNotification": true,
+      "messageTemplate": "💎 TRINCA DE DÍVIDAS ATIVA ({tripleDebtScope}) aos {minute}'! Time devedor: {debtorTeam}. Placar: {score}. CC no escopo: {ccInScope}, xG: {xgInScope}, xGOT: {xgotInScope}. Altíssima probabilidade de gol!",
+      "triggerCount": 0,
+      "minFrequencyMinutes": 5
+    },
+    {
+      "id": "rule-super-back-dominante",
+      "name": "🎯 Super Back Dominante: Reação Confirmada & Pressão Vendável",
+      "description": "Regra Unificada (Fusão Regras 3 e 4). Identifica favorito ou equipe dominante em empate ou perdendo por até 1 gol, com superioridade estatística comprovada (xG >= 0.95, CC >= 2) e reação viva com alta pressão ofensiva para entradas de alto EV em Back.",
+      "matchId": "all",
+      "enabled": true,
+      "logic": "AND",
+      "conditions": [
+        {
+          "metric": "superBackDominanteQualified",
+          "operator": "==",
+          "value": 1
+        },
+        {
+          "metric": "minute",
+          "operator": ">=",
+          "value": 20
+        },
+        {
+          "metric": "minute",
+          "operator": "<=",
+          "value": 85
+        }
+      ],
+      "severity": "opportunity",
+      "soundEnabled": true,
+      "browserNotification": true,
+      "messageTemplate": "🎯 SUPER BACK DOMINANTE [{sbdTier}]: Back {dominantTeam} aos {minute}' (Placar: {score}, {sbdSituation}). Pressão: {dominantPressure}% ({livePressureStatus}) | xG: {dominantXg} vs {opponentXg} | CC: {dominantCc}. Prob: {sbdProb}% (Odd Justa: {fairOdd} | Min: {minRecommendedOdd}). Tese: {tese}",
+      "triggerCount": 0,
+      "minFrequencyMinutes": 5
+    },
+    {
+      "id": "rule-v12-over-back",
+      "name": "📈 V12 Over & Back Alavancado (Regras Tradicionais V1.2)",
+      "description": "Alerta transferido do Terminal Python (Regra 5). Sinais analíticos de alta conversão: Over Premium (36-50'), Over Bilateral Forte (36-65'), Over Gol Limite (76-83') e Back T1 Main com base em taxa de Chances Claras (min/CC) e xGOT.",
+      "matchId": "all",
+      "enabled": true,
+      "logic": "AND",
+      "conditions": [
+        {
+          "metric": "v12OverBackQualified",
+          "operator": "==",
+          "value": 1
+        },
+        {
+          "metric": "minute",
+          "operator": ">=",
+          "value": 35
+        },
+        {
+          "metric": "minute",
+          "operator": "<=",
+          "value": 88
+        }
+      ],
+      "severity": "opportunity",
+      "soundEnabled": true,
+      "browserNotification": true,
+      "messageTemplate": "📈 SINAL V1.2 ATIVO: [{v12RuleName}] aos {minute}'! Mercado: {v12Market} (Tier: {v12Tier}). {v12Trace}. Placar: {score}.",
+      "triggerCount": 0,
+      "minFrequencyMinutes": 5
+    },
+    {
+      "id": "rule-ambas-marcam-btts",
+      "name": "⚽ Ambas Marcam (BTTS: Sim) - Ritmo Bilateral",
+      "description": "Alerta transferido do Terminal Python e 100% editável. Confluência ofensiva bilateral: volume mútuo nos últimos 10 minutos (ataques perigosos, chutes e pressão), xG bilateral consistente e assimetria para ambos os times marcarem gol.",
+      "matchId": "all",
+      "enabled": true,
+      "logic": "AND",
+      "conditions": [
+        {
+          "metric": "ambasMarcamQualified",
+          "operator": "==",
+          "value": 1
+        },
+        {
+          "metric": "minute",
+          "operator": ">=",
+          "value": 18
+        },
+        {
+          "metric": "minute",
+          "operator": "<=",
+          "value": 86
+        }
+      ],
+      "severity": "opportunity",
+      "soundEnabled": true,
+      "browserNotification": true,
+      "messageTemplate": "⚽ AMBAS MARCAM (BTTS: SIM) aos {minute}'! {teamHome} x {teamAway} (Placar: {score}). {bttsReasoning}. Probabilidade estimada: {bttsProb}%. Odd Justa: @{bttsFairOdd} | Odd Mínima: @{bttsMinOdd}.",
+      "triggerCount": 0,
+      "minFrequencyMinutes": 5
+    },
+    {
+      "id": "rule-gol-iminente-surto",
+      "name": "🚨 Gol Iminente: Surto Ofensivo (5m)",
+      "description": "Alerta de alta agressividade com janela de 5 minutos. Detecta pressão contínua (>=72% de média, >=60% de consistência) e blitz ofensiva imediata, com proteção de reset por gol e intervalo.",
+      "matchId": "all",
+      "enabled": true,
+      "logic": "AND",
+      "conditions": [
+        {
+          "metric": "imminentGoalQualified",
+          "operator": "==",
+          "value": 1
+        },
+        {
+          "metric": "minute",
+          "operator": ">=",
+          "value": 20
+        }
+      ],
+      "severity": "critical",
+      "soundEnabled": true,
+      "browserNotification": true,
+      "messageTemplate": "🚨 GOL IMINENTE: Blitz ofensiva de 5m aos {minute}'! {teamHome} {score} {teamAway}. Pressão sufocante e alta agressividade recente. Entrada recomendada a favor do dominante!",
+      "triggerCount": 1,
+      "lastTriggered": "2026-09-23T14:47:54.756Z",
+      "minFrequencyMinutes": 5
+    }
+  ],
+  "customWebhooks": [
+    {
+      "id": "wh-flashscore-live",
+      "name": "FlashScore Live Crawler BR",
+      "slug": "flashscore-live",
+      "secretToken": "sec_flashscore_982a17f",
+      "description": "Recepção assíncrona minuto a minuto do crawler FlashScore / Playwright (xG, xGOT, Chutes, Big Chances).",
+      "active": true,
+      "asyncMode": true,
+      "autoTriggerAlerts": true,
+      "autoComputeMomentum": true,
+      "targetLeague": "Brasileirão Série A / Libertadores / Premier League",
+      "createdAt": "2026-09-01T17:41:57.226Z",
+      "totalCalls": 234,
+      "lastStatus": "ok",
+      "lastCallTimestamp": "2026-09-23T14:59:09.419Z",
+      "lastSourceIp": "127.0.0.1"
+    }
+  ],
+  "customUserSettings": {}
+}
