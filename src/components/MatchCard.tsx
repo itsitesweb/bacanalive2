@@ -384,36 +384,49 @@ export function MatchCard({
 
         {/* Tactical Market Decision Panel (Gols & Match Odds, Zero Corners) */}
         {(() => {
-          const rec = getMarketRecommendation(match, rulesAnalysis);
-          if (!rec) return null;
+          const hasTrendAlert = !!rulesAnalysis?.trendAlert?.qualified;
+          const hasImminentAlert = !!rulesAnalysis?.imminentGoal?.qualified || !!rulesAnalysis?.imminentGoal?.isImminent;
+
+          // Exigência obrigatória: Apenas exibir se houver Trend Alert ou Surto (Imminent Alert) ativo
+          if (!hasTrendAlert && !hasImminentAlert) {
+            return null;
+          }
+
+          const isConfluent = !!rulesAnalysis?.imminentGoal?.isConfluent || !!rulesAnalysis?.trendAlert?.isConfluent;
+          const confluenceState = {
+            isConfluent,
+            convictionLevel: isConfluent ? ('MAX' as const) : ('MEDIUM' as const),
+            rule1Triggered: hasTrendAlert,
+            rule2Triggered: hasImminentAlert,
+            triggeredTeam: rulesAnalysis?.imminentGoal?.team || rulesAnalysis?.trendAlert?.team || undefined,
+            teamName: rulesAnalysis?.imminentGoal?.teamName || rulesAnalysis?.trendAlert?.teamName || undefined,
+          };
+          const rec = getMarketRecommendation(match, null, confluenceState);
+          if (!rec || rec.action === 'NO_TRADE') return null;
+
+          let displayActionLabel: string = rec.action;
+          if (rec.action === 'GO_MAX') displayActionLabel = '🚀 ENTRADA IMEDIATA (MAX)';
+          else if (rec.action === 'ENTER') displayActionLabel = '🎯 ENTRADA LIBERADA';
+          else if (rec.action === 'SNIPE') displayActionLabel = '⏳ AGUARDAR (SNIPE)';
+          else if (rec.action === 'NO_TRADE') displayActionLabel = '🛑 NÃO APOSTAR';
+
           return (
-            <div className={`mb-2.5 p-2 rounded-xl border text-[10px] bg-slate-950/90 shadow-sm ${rec.isConfluent ? 'border-rose-500/50 shadow-rose-950/20' : 'border-slate-800/90'}`}>
+            <div className={`mb-2.5 p-2 rounded-xl border text-[10px] bg-slate-950/90 shadow-sm transition-all duration-300 animate-pulse ${rec.badgeClass}`}>
               <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-1.5 font-bold">
-                  <span className={`px-1.5 py-0.5 rounded text-[9px] border uppercase tracking-wider ${rec.actionBadgeColor}`}>
-                    {rec.actionLabel}
+                <div className="flex items-center gap-1.5 font-bold truncate">
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-black border uppercase tracking-wider bg-slate-900 text-white">
+                    {displayActionLabel}
                   </span>
-                  <span className="text-white font-black">{rec.marketLabel}</span>
+                  <span className="text-white font-black truncate">{rec.marketTitle}</span>
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className={`px-1.5 py-0.5 rounded text-[8.5px] font-black ${rec.convictionBadgeColor}`}>
-                    CONV: {rec.convictionLevel}
-                  </span>
-                  <span className="text-slate-400 font-mono font-bold">
-                    Min @{rec.recommendedOddMin.toFixed(2)}
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="text-slate-300 font-mono font-bold">
+                    Alvo @{rec.targetOdd.toFixed(2)}
                   </span>
                 </div>
               </div>
-              <div className="text-slate-300 font-medium leading-tight mb-1">
-                <span className="text-emerald-400 font-bold">Alvo:</span> {rec.targetLine}
-                {rec.currentEstimatedOdd && (
-                  <span className="ml-2 text-slate-400">
-                    (Odd Atual: <strong className="text-cyan-300 font-mono">@{rec.currentEstimatedOdd.toFixed(2)}</strong>)
-                  </span>
-                )}
-              </div>
-              <p className="text-[9px] text-slate-400 leading-snug italic">
-                {rec.justification}
+              <p className="text-[9.5px] text-slate-300 leading-snug">
+                {rec.reasoning}
               </p>
             </div>
           );

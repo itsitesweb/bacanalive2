@@ -418,8 +418,13 @@ export interface SuperPressureTrendConfig {
   minFinalizations?: number; // Padrão: 2 (Finalizações mínimas na janela para eliminar posse estéril)
   cutoff1T?: number; // Padrão: 38 min (Corte máximo no 1º Tempo)
   cutoff2T?: number; // Padrão: 82 min (Corte máximo no 2º Tempo)
+  cutoffMinute1T?: number; // Padrão: 38
+  cutoffMinute2T?: number; // Padrão: 82
+  minShotsInWindow?: number; // Padrão: 2
   minTargetOdd1T?: number; // Padrão: 1.60
   minTargetOdd2T?: number; // Padrão: 1.70
+  targetOdd1T?: number; // Padrão: 1.60
+  targetOdd2T?: number; // Padrão: 1.70
 }
 
 export const DEFAULT_SUPER_PRESSURE_CONFIG: SuperPressureTrendConfig = {
@@ -432,9 +437,26 @@ export const DEFAULT_SUPER_PRESSURE_CONFIG: SuperPressureTrendConfig = {
   minFinalizations: 2,
   cutoff1T: 38,
   cutoff2T: 82,
+  cutoffMinute1T: 38,
+  cutoffMinute2T: 82,
+  minShotsInWindow: 2,
   minTargetOdd1T: 1.60,
   minTargetOdd2T: 1.70,
+  targetOdd1T: 1.60,
+  targetOdd2T: 1.70,
 };
+
+export interface ImminentGoalSurgeConfig {
+  enabled?: boolean;
+  windowMinutes?: number; // 5
+  minMinute1T?: number; // 20
+  cutoffMinute1T?: number; // 38
+  minMinute2T?: number; // 55
+  cutoffMinute2T?: number; // 82
+  minApPerMinute?: number; // 1.6
+  minShotsInWindow?: number; // 2
+  targetOdd?: number; // 1.50
+}
 
 export interface ImminentGoalConfig {
   enabled?: boolean; // Padrão: true
@@ -802,32 +824,42 @@ export interface DominantTrailingEvaluation {
 // Regra Unificada: Super Back Dominante (Reação Confirmada & Pressão Vendável)
 // ──────────────────────────────────────────────────────────────────────────
 export interface SuperBackDominanteConfig {
-  enabled: boolean;
-  minMinute: number; // Padrão: 20'
-  maxMinute: number; // Padrão: 82'
-  minXg: number; // Padrão: 0.95 (xG estrutural acumulado)
-  minCc: number; // Padrão: 2 (Chances claras mínimas ou xGOT >= 0.75)
-  maxOppXg: number; // Padrão: 0.85 (Adversário inofensivo)
-  minPressure: number; // Padrão: 65% (Pressão ao vivo mínima)
-  minDangerousAttacksLast10: number; // Padrão: 6 (Ataques perigosos recentes)
-  minShotsOnTarget: number; // Padrão: 3 (Chutes no alvo)
-  maxDeficitGoals: number; // Padrão: 1 (Desvantagem máxima: empate ou perdendo por 1 gol; 2 gols permitido se pressão brutal)
-  allowDraw: boolean; // Padrão: true (Permite também empate com volume)
-  postGoalCooldownMinutes?: number; // Padrão: 3 (Tempo de resguardo após qualquer gol na partida para evitar alertas imediatos)
+  enabled?: boolean;
+  minXgDominant?: number;          // Padrão: 0.95
+  minCcDominant?: number;          // Padrão: 2
+  maxOpponentXg?: number;          // Padrão: 0.70
+  minReactionPressure?: number;    // Padrão: 70%
+  minRecentDangerAttacks?: number; // Padrão: 6 (em 10 min)
+  minShotsInWindow?: number;       // Padrão: 2
+  minMinute?: number;              // Padrão: 55
+  maxMinute?: number;              // Padrão: 78
+  cooldownMinutes?: number;        // Padrão: 3 min
+  targetOddDraw?: number;          // Padrão: 1.75
+  targetOddLosing?: number;        // Padrão: 2.20
+  minAvgPressure?: number;
+  minApPerMinute?: number;
+  maxOpponentApPerMinute?: number;
+  maxGoalDeficit?: number;
+  postGoalCooldownMinutes?: number;
 }
 
 export const DEFAULT_SUPER_BACK_DOMINANTE_CONFIG: SuperBackDominanteConfig = {
   enabled: true,
-  minMinute: 20,
-  maxMinute: 82,
-  minXg: 0.95,
-  minCc: 2,
-  maxOppXg: 0.85,
-  minPressure: 70,
-  minDangerousAttacksLast10: 6,
-  minShotsOnTarget: 3,
-  maxDeficitGoals: 1,
-  allowDraw: true,
+  minXgDominant: 0.95,
+  minCcDominant: 2,
+  maxOpponentXg: 0.70,
+  minReactionPressure: 70,
+  minRecentDangerAttacks: 6,
+  minShotsInWindow: 2,
+  minMinute: 55,
+  maxMinute: 78,
+  cooldownMinutes: 3,
+  targetOddDraw: 1.75,
+  targetOddLosing: 2.20,
+  minAvgPressure: 70,
+  minApPerMinute: 1.5,
+  maxOpponentApPerMinute: 0.6,
+  maxGoalDeficit: 1,
   postGoalCooldownMinutes: 3,
 };
 
@@ -862,6 +894,8 @@ export interface SuperBackDominanteEvaluation {
   reactionReasons: string[];
   fails: string[];
   bettingTip?: TacticalTipData;
+  isSuperBack?: boolean;
+  convictionLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'MAX';
 }
 
 export interface GoalDebtClassicConfig {
@@ -1204,6 +1238,27 @@ export const DEFAULT_MODAL_CONFIG: OperationalRulesConfig = {
 };
 
 export const DEFAULT_OPERATIONAL_CONFIG = DEFAULT_MODAL_CONFIG;
+
+export interface RuleConfluenceState {
+  isConfluent: boolean;
+  convictionLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'MAX';
+  rule1Triggered: boolean;
+  rule2Triggered: boolean;
+  triggeredTeam?: 'home' | 'away';
+  teamName?: string;
+}
+
+export type RecommendationAction = 'GO_MAX' | 'ENTER' | 'SNIPE' | 'NO_TRADE';
+
+export interface MarketRecommendation {
+  action: RecommendationAction;
+  marketTitle: string;
+  marketCode: string;
+  targetOdd: number;
+  reasoning: string;
+  badgeClass: string;
+  isConfluent?: boolean;
+}
 
 
 

@@ -73,24 +73,24 @@ export const DEFAULT_RULES_CONFIG: OperationalRulesConfig = {
   // Estratégias de Análise Tática e Pressão
   enableAmbasMarcamBTTS: true,
   ambasMarcamConfig: DEFAULT_AMBAS_MARCAM_CONFIG,
-  postGoalCooldownMinutes: 3,
-  crawlerStartupCooldownMinutes: 3,
+  postGoalCooldownMinutes: 1,
+  crawlerStartupCooldownMinutes: 0.5,
   enableGoalAlerts: true,
   showGoalAlerts: true,
   crawlerConfig: {
     mode: "node",
     maxWatchlistSize: 20,
     tier3ReservedSlots: 2,
-    discoveryIntervalSeconds: 180,
+    discoveryIntervalSeconds: 30,
     concurrentWorkers: 4,
     routeResourceBlock: true,
     enableBackgroundDiscovery: true,
     autoPruneMinutes: 10,
-    noStatsBackoffMinutes: 5,
+    noStatsBackoffMinutes: 1,
     minEntryMinute: 1,
-    maxEntryMinute: 83,
-    antiSpamCooldownMinutes: 2,
-    startupCooldownMinutes: 3,
+    maxEntryMinute: 85,
+    antiSpamCooldownMinutes: 1,
+    startupCooldownMinutes: 0.5,
     matchReadTimeoutMs: 5000,
     discoveryTimeoutMs: 12000,
     excludeEsoccer: true,
@@ -1179,7 +1179,6 @@ export function evaluateDominantTrailing(
 
 // ──────────────────────────────────────────────────────────────────────────
 // 4.0. REGRA UNIFICADA: SUPER BACK DOMINANTE (REAÇÃO CONFIRMADA & PRESSÃO VENDÁVEL)
-// Fusão sinérgica das Regras 3 (Pressão Vendável) e 4 (Back Dominante)
 // ──────────────────────────────────────────────────────────────────────────
 export function evaluateSuperBackDominante(
   match: Match,
@@ -1194,26 +1193,46 @@ export function evaluateSuperBackDominante(
   const scoreStr = `${hG}-${aG}`;
   const bc = getMatchBigChances(match);
 
-  // Determinar lado dominante (CC, xG e pressão)
-  let dominantSide: 'home' | 'away' | null = null;
   const homeXg = match.stats.xG?.home ?? 0;
   const awayXg = match.stats.xG?.away ?? 0;
   const homeCc = bc.home;
   const awayCc = bc.away;
+  const hPres = match.stats.pressureIndex?.home ?? 50;
+  const aPres = match.stats.pressureIndex?.away ?? 50;
 
-  if (homeCc > awayCc) dominantSide = 'home';
-  else if (awayCc > homeCc) dominantSide = 'away';
-  else if (homeXg > awayXg + 0.15) dominantSide = 'home';
-  else if (awayXg > homeXg + 0.15) dominantSide = 'away';
-  else {
-    const hPres = match.stats.pressureIndex?.home ?? 50;
-    const aPres = match.stats.pressureIndex?.away ?? 50;
-    if (hPres >= aPres) dominantSide = 'home';
-    else dominantSide = 'away';
+  // Atribuição automática da equipe dominante/favorita (Cascata 3 Níveis)
+  let dominantSide: 'home' | 'away' | null = null;
+  const odds = match.odds;
+  const isFavHomeFlag = (match as any).isFavoriteHome;
+  const isFavAwayFlag = (match as any).isFavoriteAway;
+
+  if (isFavHomeFlag) dominantSide = 'home';
+  else if (isFavAwayFlag) dominantSide = 'away';
+  else if (odds && odds.homeWin && odds.awayWin) {
+    if (odds.homeWin <= 2.15 && odds.homeWin < odds.awayWin) dominantSide = 'home';
+    else if (odds.awayWin <= 2.15 && odds.awayWin < odds.homeWin) dominantSide = 'away';
   }
 
-  const domTeam = dominantSide === 'home' ? match.homeTeam.name : dominantSide === 'away' ? match.awayTeam.name : '';
-  const oppTeam = dominantSide === 'home' ? match.awayTeam.name : dominantSide === 'away' ? match.homeTeam.name : '';
+  if (!dominantSide) {
+    const homeXgDiff = homeXg - awayXg;
+    const awayXgDiff = awayXg - homeXg;
+    if (homeXg >= 0.95 && homeXgDiff >= 0.50 && homeCc >= 2) {
+      dominantSide = 'home';
+    } else if (awayXg >= 0.95 && awayXgDiff >= 0.50 && awayCc >= 2) {
+      dominantSide = 'away';
+    }
+  }
+
+  if (!dominantSide) {
+    if (hPres >= 70 && hPres >= aPres + 10) dominantSide = 'home';
+    else if (aPres >= 70 && aPres >= hPres + 10) dominantSide = 'away';
+    else {
+      dominantSide = hPres >= aPres ? 'home' : 'away';
+    }
+  }
+
+  const domTeam = dominantSide === 'home' ? match.homeTeam.name : match.awayTeam.name;
+  const oppTeam = dominantSide === 'home' ? match.awayTeam.name : match.homeTeam.name;
 
   if (!isEnabled || !dominantSide) {
     return {
@@ -1239,13 +1258,15 @@ export function evaluateSuperBackDominante(
       hasLiveReaction: false,
       hasOpponentZeroThreat: false,
       tese: "Super Back Dominante desativado ou sem lado dominante definido.",
-      marketTarget: "Back Favorito / Lay Zebra",
+      marketTarget: "Back Favorito",
       probTarget: 0,
       fairOdd: 0,
-      minRecommendedOdd: 0,
+      minRecommendedOdd: 1.75,
       confidence: 'moderada',
       reactionReasons: [],
       fails: [!isEnabled ? "regra_desativada" : "sem_lado_dominante"],
+      isSuperBack: false,
+      convictionLevel: 'LOW',
     };
   }
 
@@ -1258,24 +1279,16 @@ export function evaluateSuperBackDominante(
 
   const domXg = Number((isHome ? homeXg : awayXg).toFixed(2));
   const oppXg = Number((isHome ? awayXg : homeXg).toFixed(2));
-  const xgDiff = Number((domXg - oppXg).toFixed(2));
   const domCc = isHome ? homeCc : awayCc;
-  const oppCc = isHome ? awayCc : homeCc;
-
-  const domXgot = Number(
-    (isHome
-      ? (match.stats.xGOT?.home ?? domXg * 0.85)
-      : (match.stats.xGOT?.away ?? domXg * 0.85)
-    ).toFixed(2)
-  );
-
-  const domPressure = isHome
-    ? (match.stats.pressureIndex?.home ?? 50)
-    : (match.stats.pressureIndex?.away ?? 50);
+  const domPressure = isHome ? hPres : aPres;
 
   const domDangerousAttacksLast10 = isHome
     ? (match.stats.dangerousAttacksLast10?.home ?? 0)
     : (match.stats.dangerousAttacksLast10?.away ?? 0);
+
+  const oppDangerousAttacksLast10 = isHome
+    ? (match.stats.dangerousAttacksLast10?.away ?? 0)
+    : (match.stats.dangerousAttacksLast10?.home ?? 0);
 
   const domSot = isHome
     ? (match.stats.shotsOnTarget?.home ?? 0)
@@ -1285,133 +1298,92 @@ export function evaluateSuperBackDominante(
     ? (match.stats.possession?.home ?? 50)
     : (match.stats.possession?.away ?? 50);
 
-  // Status de Pressão Viva
-  let livePressureStatus: 'brutal' | 'forte' | 'neutro' | 'dead' = 'neutro';
-  if (domPressure >= 85) livePressureStatus = 'brutal';
-  else if (domPressure >= 68) livePressureStatus = 'forte';
-  else if (domPressure <= 35) livePressureStatus = 'dead';
+  const minMin = sbdCfg.minMinute ?? 55;
+  const maxMin = sbdCfg.maxMinute ?? 78;
+  const minPressure = sbdCfg.minReactionPressure ?? 70;
+  const minApPerMin = 1.5;
+  const maxOppApPerMin = 0.6;
+  const minShotsInWindow = sbdCfg.minShotsInWindow ?? 2;
+  const maxGoalDeficit = 1;
+  const targetOddDraw = sbdCfg.targetOddDraw ?? 1.75;
+  const targetOddLosing = sbdCfg.targetOddLosing ?? 2.20;
+  const minXgDom = sbdCfg.minXgDominant ?? 0.95;
+  const maxOppXg = sbdCfg.maxOpponentXg ?? 0.70;
+  const minCcDom = sbdCfg.minCcDominant ?? 2;
 
-  // Configurações e Limiares
-  const minMin = sbdCfg.minMinute ?? 20;
-  const maxMin = sbdCfg.maxMinute ?? 82;
-  const minXg = sbdCfg.minXg ?? 0.95;
-  const minCc = sbdCfg.minCc ?? 2;
-  const maxOppXg = sbdCfg.maxOppXg ?? 0.85;
-  const minPressure = sbdCfg.minPressure ?? 65;
-  const minDanger = sbdCfg.minDangerousAttacksLast10 ?? 6;
-  const minSot = sbdCfg.minShotsOnTarget ?? 3;
-  const maxDeficit = sbdCfg.maxDeficitGoals ?? 1;
+  const statusUpper = (match.status || "").toUpperCase();
+  const isSecondHalf = minute >= 46 || statusUpper === "2H" || statusUpper === "2T";
 
-  // Critérios de Validação
   const fails: string[] = [];
-  if (minute < minMin) fails.push(`minuto < ${minMin}'`);
-  if (minute > maxMin) fails.push(`minuto > ${maxMin}'`);
-  if (situation === 'VENCENDO') fails.push('ja_vencendo');
-  if (situation === 'EMPATANDO' && !sbdCfg.allowDraw) fails.push('empate_nao_permitido');
-  if (deficitGoals > maxDeficit && livePressureStatus !== 'brutal') {
-    fails.push(`desvantagem_maior_que_${maxDeficit}_sem_pressao_brutal`);
+
+  // Trava de Expulsão (Cartão Vermelho)
+  const domRedCards = isHome ? (match.stats.redCards?.home ?? 0) : (match.stats.redCards?.away ?? 0);
+  if (domRedCards >= 1) {
+    fails.push('favorito_com_cartao_vermelho_bloqueado');
   }
 
-  // Resguardo Pós-Gol Unificado (Cooldown geral pós-gol: bloqueia disparo precipitado imediatamente após qualquer gol)
-  const postGoalCooldown = config.postGoalCooldownMinutes ?? sbdCfg.postGoalCooldownMinutes ?? 3;
-  if (postGoalCooldown > 0 && isWithinPostGoalSuppression(match, postGoalCooldown)) {
-    const lastGoalMin = getLastGoalMinute(match);
-    fails.push(`resguardo_pos_gol_ativo_${postGoalCooldown}m${lastGoalMin !== null ? `_gol_aos_${lastGoalMin}'` : ""}`);
+  // Janela temporal: 2º Tempo, entre 55' e 78'
+  if (!isSecondHalf || minute < minMin) fails.push(`minuto < ${minMin}' (2T)`);
+  if (minute > maxMin) fails.push(`cutoff_maximo_${maxMin}'_atingido`);
+
+  // Trava de placar: Empatando ou perdendo por no máximo 1 gol
+  if (situation === 'VENCENDO') fails.push('favorito_ja_vencendo');
+  if (deficitGoals > maxGoalDeficit) fails.push(`desvantagem_maior_que_${maxGoalDeficit}_gols`);
+
+  // xG & Opponent xG e CCs
+  if (domXg < minXgDom) fails.push(`xg_favorito_${domXg}_<_$minXgDom}`);
+  if (oppXg > maxOppXg) fails.push(`xg_oponente_${oppXg}_>_${maxOppXg}`);
+  if (domCc < minCcDom) fails.push(`cc_favorito_${domCc}_<_$minCcDom}`);
+
+  // Pressão e AP/min
+  if (domPressure < minPressure) {
+    fails.push(`pressao_media_${domPressure}%_<_$minPressure}%`);
   }
 
-  // Validação essencial: A pressão ao vivo da equipe dominante não pode ser neutra ou morta (< 60%)
-  if (domPressure < 60) {
-    fails.push(`pressao_ao_vivo_insuficiente_${domPressure}%`);
+  const domApPerMin = Number((domDangerousAttacksLast10 / 10).toFixed(2));
+  if (domApPerMin < minApPerMin) {
+    fails.push(`ap_per_min_${domApPerMin}_<_$minApPerMin}`);
   }
 
-  // Pilar 1: Volume Estrutural & Ineficiência
-  const hasCcOrXgot = domCc >= minCc || (domXgot >= 0.75 && domXg >= 1.0);
-  const hasStructuralVolume = domXg >= minXg && hasCcOrXgot && domXg > oppXg;
-
-  // Volume mínimo real obrigatório (evita que jogos com 0 xG e 0 CC qualifiquem apenas por chutes acumulados)
-  const hasMinimalVolume = domXg >= 0.70 || domCc >= 1 || (domDangerousAttacksLast10 >= minDanger && domPressure >= 70);
-  if (!hasMinimalVolume) {
-    fails.push('volume_ofensivo_minimo_insuficiente');
+  // Finalizações no recorte de 10 min >= 2
+  const minThreshold = Math.max(46, minute - 10);
+  const rawTimeline = match.momentumTimeline || [];
+  const recentTimeline = rawTimeline.filter(pt => pt.minute >= minThreshold && pt.minute <= minute);
+  const shotsInWindow = recentTimeline.filter(pt => isHome ? pt.homeShot : pt.awayShot).length || (domSot >= minShotsInWindow ? minShotsInWindow : 0);
+  const effectiveShots = Math.max(shotsInWindow, domSot);
+  if (effectiveShots < minShotsInWindow) {
+    fails.push(`chutes_recolhidos_${effectiveShots}_<_$minShotsInWindow}`);
   }
 
-  // Zebra inofensiva / Adversário contido
-  const hasOpponentZeroThreat = oppXg <= maxOppXg || (domXg >= oppXg * 1.5);
-  if (oppXg > maxOppXg && domXg < oppXg * 1.4) {
-    fails.push(`adversario_perigoso_xg_${oppXg}`);
+  // Trava contra-ataque da zebra (Opponent AP/min <= 0.6)
+  const oppApPerMin = Number((oppDangerousAttacksLast10 / 10).toFixed(2));
+  if (oppApPerMin > maxOppApPerMin) {
+    fails.push(`zebra_perigosa_ap_min_${oppApPerMin}_>_${maxOppApPerMin}`);
   }
 
-  // Pilar 2: Reação Viva / Momentum
-  const isPressureQual = domPressure >= minPressure;
-  const isDangerQual = domDangerousAttacksLast10 >= minDanger;
-  // Chutes no alvo cumulativos só contam se houver pressão ativa no momento
-  const isSotQual = domSot >= minSot && domPressure >= 60;
-  const hasLiveReaction = isPressureQual || isDangerQual || isSotQual;
+  const qualified = fails.length === 0;
+  const targetOdd = deficitGoals === 0 ? targetOddDraw : targetOddLosing;
 
-  const reactionReasons: string[] = [];
-  if (isPressureQual) reactionReasons.push(`Pressão ao vivo ${domPressure}% ≥ ${minPressure}%`);
-  if (isDangerQual) reactionReasons.push(`Perigo recente (10m) ${domDangerousAttacksLast10} ≥ ${minDanger}`);
-  if (isSotQual) reactionReasons.push(`Chutes no alvo ${domSot} ≥ ${minSot} com pressão viva`);
-
-  if (!hasLiveReaction && situation === 'PERDENDO') {
-    fails.push('sem_reacao_viva_confirmada');
-  }
-
-  // Em caso de EMPATE: Exige real superioridade e pressão ativa para justificar entrada de Back
-  if (situation === 'EMPATANDO') {
-    const hasDrawSuperiority = (domXg > oppXg || domCc > oppCc) && (domXg >= 0.80 || domCc >= 1 || domPressure >= 68);
-    if (!hasDrawSuperiority || !hasLiveReaction) {
-      fails.push('empate_sem_superioridade_convergente');
-    }
-  }
-
-  let tier: 'OURO' | 'PRATA' | 'BRONZE' | 'NENHUM' = 'NENHUM';
-  let probTarget = 60;
-  let confidence: 'extrema' | 'alta' | 'moderada' = 'moderada';
-
-  if (fails.length === 0 && hasLiveReaction && domPressure >= 62) {
-    if (hasStructuralVolume && hasLiveReaction && hasOpponentZeroThreat && domPressure >= 70 && (domXg >= oppXg + 0.3 || domCc >= oppCc + 1)) {
-      tier = 'OURO';
-      probTarget = Math.min(88, Math.max(78, Math.round(76 + (domXg - oppXg) * 8 + (livePressureStatus === 'brutal' ? 6 : 0))));
-      confidence = livePressureStatus === 'brutal' ? 'extrema' : 'alta';
-    } else if (hasLiveReaction && (domXg >= 0.85 || domCc >= 1) && domXg > oppXg && domPressure >= 65) {
-      tier = 'PRATA';
-      probTarget = Math.min(76, Math.max(68, Math.round(67 + (domXg - oppXg) * 5)));
-      confidence = 'alta';
-    } else if (hasLiveReaction && (domXg >= 0.70 || domCc >= 1) && domPressure >= 62 && domXg >= oppXg) {
-      tier = 'BRONZE';
-      probTarget = 64;
-      confidence = 'moderada';
-    }
-  }
-
-  const qualified = tier !== 'NENHUM' && fails.length === 0;
-
-  const fairOdd = Number((100 / Math.max(1, probTarget)).toFixed(2));
-  const minRecommendedOdd = Number((fairOdd * 1.08).toFixed(2));
-
-  let tese = "";
-  if (qualified) {
-    tese = `Volume de ${domXg.toFixed(2)} xG (${domCc} CC) com reação viva (${reactionReasons.join(", ")}). Adversário contido em ${oppXg.toFixed(2)} xG.`;
-  } else {
-    tese = `Critérios de Super Back não atingidos (${fails.join(", ") || "parâmetros não convergentes"}).`;
-  }
+  const tese = qualified
+    ? `🔥 SUPER BACK QUALIFICADO: ${domTeam} sufocando no 2T (${minute}'). xG: ${domXg.toFixed(2)} vs ${oppXg.toFixed(2)}, Chutes (10m): ${effectiveShots}, AP/min: ${domApPerMin}. Odd Mínima Recomendada: >= [${targetOdd.toFixed(2)}].`
+    : `Super Back não qualificado (${fails.join(", ")}).`;
 
   const bettingTip: TacticalTipData | undefined = qualified
     ? generateBettingTip({
         marketCode: "SUPER_BACK_DOMINANTE",
         marketName: `Super Back Dominante (${domTeam})`,
-        targetSelection: `Back ${domTeam} / Lay Adversário`,
-        probabilityPct: probTarget,
-        confidence,
+        targetSelection: `Back ${domTeam}`,
+        probabilityPct: deficitGoals === 0 ? 78 : 72,
+        confidence: 'alta',
         reasoning: tese,
-        actionText: `Entrada em Back ${domTeam} se odd ≥ ${minRecommendedOdd.toFixed(2)}. Efetuar Lay/Cashout imediatamente no gol.`,
+        actionText: `Entrada em Back ${domTeam} (Odd Mínima Match Odds ≥ ${targetOdd.toFixed(2)})`,
         match,
       })
     : undefined;
 
   return {
     qualified,
-    tier,
+    tier: qualified ? 'OURO' : 'NENHUM',
     dominantSide,
     dominantTeam: domTeam,
     opponentTeam: oppTeam,
@@ -1421,27 +1393,31 @@ export function evaluateSuperBackDominante(
     situation,
     dominantXg: domXg,
     opponentXg: oppXg,
-    xgDiff,
+    xgDiff: Number((domXg - oppXg).toFixed(2)),
     dominantCc: domCc,
     dominantPressure: domPressure,
-    livePressureStatus,
+    livePressureStatus: domPressure >= 80 ? 'brutal' : 'forte',
     dangerousAttacksLast10: domDangerousAttacksLast10,
     shotsOnTarget: domSot,
     possession,
-    hasStructuralVolume,
-    hasLiveReaction,
-    hasOpponentZeroThreat,
+    hasStructuralVolume: qualified,
+    hasLiveReaction: qualified,
+    hasOpponentZeroThreat: oppApPerMin <= maxOppApPerMin,
     tese,
-    marketTarget: "Back Favorito / Lay Zebra",
-    probTarget,
-    fairOdd,
-    minRecommendedOdd,
-    confidence,
-    reactionReasons,
+    marketTarget: "Back Favorito",
+    probTarget: deficitGoals === 0 ? 78 : 72,
+    fairOdd: Number((1.0 / (deficitGoals === 0 ? 0.78 : 0.72)).toFixed(2)),
+    minRecommendedOdd: targetOdd,
+    confidence: 'alta',
+    reactionReasons: [`Pressão ${domPressure}%`, `AP/min ${domApPerMin}`, `Chutes ${effectiveShots}`, `xG ${domXg} vs ${oppXg}`],
     fails,
     bettingTip,
+    isSuperBack: qualified,
+    convictionLevel: qualified ? 'HIGH' : 'LOW',
   };
 }
+
+
 
 // ──────────────────────────────────────────────────────────────────────────
 // 4.1. DÍVIDA DE GOLS TRADICIONAL / DIAGNÓSTICO CLÁSSICO
