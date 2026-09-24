@@ -478,18 +478,18 @@ export interface ImminentGoalConfig {
 export const DEFAULT_IMMINENT_GOAL_CONFIG: ImminentGoalConfig = {
   enabled: true,
   windowMinutes: 5,
-  minAvgPressure: 72,
-  minConsistencyPct: 60,
+  minAvgPressure: 75,
+  minConsistencyPct: 80,
   pointThreshold: 70,
   minMinute: 20,
   minMinute2T: 55,
   cutoff1T: 38,
   cutoff2T: 82,
-  minDangerousAttacks: 2,
+  minDangerousAttacks: 8,
   minDangerousAttacksPerMin: 1.6,
   minShots: 2,
   minTargetOdd: 1.50,
-  extremePressureBypass: 80,
+  extremePressureBypass: 85,
 };
 
 export interface AmbasMarcamConfig {
