@@ -1200,33 +1200,50 @@ export function evaluateSuperBackDominante(
   const hPres = match.stats.pressureIndex?.home ?? 50;
   const aPres = match.stats.pressureIndex?.away ?? 50;
 
-  // Atribuição automática da equipe dominante/favorita (Cascata 3 Níveis)
+  // Atribuição automática da equipe dominante/favorita (Cascata 3 Níveis - Item 5)
   let dominantSide: 'home' | 'away' | null = null;
   const odds = match.odds;
   const isFavHomeFlag = (match as any).isFavoriteHome;
   const isFavAwayFlag = (match as any).isFavoriteAway;
 
+  // NÍVEL 1: Mapeamento de Odds Pré-Live/Ao Vivo
   if (isFavHomeFlag) dominantSide = 'home';
   else if (isFavAwayFlag) dominantSide = 'away';
   else if (odds && odds.homeWin && odds.awayWin) {
-    if (odds.homeWin <= 2.15 && odds.homeWin < odds.awayWin) dominantSide = 'home';
-    else if (odds.awayWin <= 2.15 && odds.awayWin < odds.homeWin) dominantSide = 'away';
+    if (odds.homeWin <= 2.15 && (odds.awayWin - odds.homeWin >= 0.50 || odds.homeWin < odds.awayWin)) dominantSide = 'home';
+    else if (odds.awayWin <= 2.15 && (odds.homeWin - odds.awayWin >= 0.50 || odds.awayWin < odds.homeWin)) dominantSide = 'away';
   }
 
+  const homeDangerousAttacks10m = match.stats.dangerousAttacksLast10?.home ?? 0;
+  const awayDangerousAttacks10m = match.stats.dangerousAttacksLast10?.away ?? 0;
+  const homeApMin = homeDangerousAttacks10m / 10;
+  const awayApMin = awayDangerousAttacks10m / 10;
+
+  // NÍVEL 2: Fallback Estatístico Dominante (Métricas In-Play do Crawler)
   if (!dominantSide) {
     const homeXgDiff = homeXg - awayXg;
     const awayXgDiff = awayXg - homeXg;
-    if (homeXg >= 0.95 && homeXgDiff >= 0.50 && homeCc >= 2) {
+    const minApRatio = 1.2;
+    if (homeXg >= 0.95 && homeXgDiff >= 0.50 && homeCc >= 2 && homeApMin >= minApRatio * Math.max(0.1, awayApMin)) {
       dominantSide = 'home';
-    } else if (awayXg >= 0.95 && awayXgDiff >= 0.50 && awayCc >= 2) {
+    } else if (awayXg >= 0.95 && awayXgDiff >= 0.50 && awayCc >= 2 && awayApMin >= minApRatio * Math.max(0.1, homeApMin)) {
       dominantSide = 'away';
     }
   }
 
+  // NÍVEL 3: Fallback de Momentum Recente (Sufoco nos 10m)
   if (!dominantSide) {
-    if (hPres >= 70 && hPres >= aPres + 10) dominantSide = 'home';
-    else if (aPres >= 70 && aPres >= hPres + 10) dominantSide = 'away';
-    else {
+    const minThreshold = Math.max(1, minute - 10);
+    const rawTimeline = match.momentumTimeline || [];
+    const recentTimeline = rawTimeline.filter(pt => pt.minute >= minThreshold && pt.minute <= minute);
+    const homeRecentShots = recentTimeline.filter(pt => pt.homeShot).length;
+    const awayRecentShots = recentTimeline.filter(pt => pt.awayShot).length;
+
+    if (hPres >= 70 && homeDangerousAttacks10m >= 6 && homeRecentShots >= 2 && hPres >= aPres + 5) {
+      dominantSide = 'home';
+    } else if (aPres >= 70 && awayDangerousAttacks10m >= 6 && awayRecentShots >= 2 && aPres >= hPres + 5) {
+      dominantSide = 'away';
+    } else {
       dominantSide = hPres >= aPres ? 'home' : 'away';
     }
   }
