@@ -119,13 +119,6 @@ export function RuleParametersEditor({
     ruleName.includes("diagnóstico clássico") ||
     ruleName.includes("dívida de gols");
 
-  const isCornersBlitzRule =
-    ruleId.includes("corners") ||
-    ruleId.includes("cantos") ||
-    ruleId.includes("blitz") ||
-    ruleName.includes("cantos") ||
-    ruleName.includes("blitz");
-
   const isImminentGoalRule =
     ruleId.includes("iminente") ||
     ruleName.includes("iminente") ||
@@ -1598,109 +1591,7 @@ export function RuleParametersEditor({
     );
   }
 
-  // --------------------------------------------------------------------------
-  // 6. BLITZ DE CANTOS & PRESSÃO EXTREMA
-  // --------------------------------------------------------------------------
-  if (isCornersBlitzRule) {
-    const blitzWindow = rulesConfig.blitzCornerWindowMinutes ?? 8;
-    const blitzMinCorners = rulesConfig.blitzMinCornersInWindow ?? 2;
-    const blitzMinTotal = rulesConfig.blitzMinTotalCorners ?? 6;
-    const blitzMinMin = rulesConfig.blitzMinMinute ?? 60;
 
-    const updateBlitz = (patch: Partial<OperationalRulesConfig>) => {
-      saveConfigPatch(patch);
-    };
-
-    return (
-      <div className="p-4 bg-slate-950/80 border border-amber-500/40 rounded-2xl space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-amber-400" />
-            <span className="font-bold text-xs text-white">
-              Parâmetros Editáveis: Blitz de Cantos & Pressão Extrema
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={() =>
-              updateBlitz({
-                blitzCornerWindowMinutes: 8,
-                blitzMinCornersInWindow: 2,
-                blitzMinTotalCorners: 6,
-                blitzMinMinute: 60,
-              })
-            }
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 text-xs font-semibold"
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
-            <span>Restaurar Padrões</span>
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
-            <label className="text-amber-400 font-bold text-xs block">Janela Recente de Blitz</label>
-            <input
-              type="number"
-              min={3}
-              max={20}
-              value={blitzWindow}
-              onChange={(e) => updateBlitz({ blitzCornerWindowMinutes: parseInt(e.target.value) || 8 })}
-              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-center font-mono text-white text-xs font-bold"
-            />
-            <p className="text-[10px] text-slate-500">Janela retrospectiva em minutos. (Padrão: 8 min)</p>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
-            <label className="text-amber-400 font-bold text-xs block">Mínimo de Cantos na Janela</label>
-            <input
-              type="number"
-              min={1}
-              max={6}
-              value={blitzMinCorners}
-              onChange={(e) => updateBlitz({ blitzMinCornersInWindow: parseInt(e.target.value) || 2 })}
-              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-center font-mono text-white text-xs font-bold"
-            />
-            <p className="text-[10px] text-slate-500">Cantos na janela recente. (Padrão: ≥ 2)</p>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
-            <label className="text-cyan-400 font-bold text-xs block">Cantos Totais na Partida</label>
-            <input
-              type="number"
-              min={2}
-              max={15}
-              value={blitzMinTotal}
-              onChange={(e) => updateBlitz({ blitzMinTotalCorners: parseInt(e.target.value) || 6 })}
-              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-center font-mono text-white text-xs font-bold"
-            />
-            <p className="text-[10px] text-slate-500">Total acumulado no jogo. (Padrão: ≥ 6)</p>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
-            <label className="text-sky-400 font-bold text-xs block">Minuto Mínimo de Jogo</label>
-            <input
-              type="number"
-              min={15}
-              max={80}
-              value={blitzMinMin}
-              onChange={(e) => updateBlitz({ blitzMinMinute: parseInt(e.target.value) || 60 })}
-              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-center font-mono text-white text-xs font-bold"
-            />
-            <p className="text-[10px] text-slate-500">Minuto inicial. (Padrão: 60&apos;)</p>
-          </div>
-        </div>
-
-        {statusMessage && (
-          <div className="p-2.5 bg-amber-500/15 border border-amber-500/40 rounded-xl text-amber-300 text-xs font-bold flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-amber-400" />
-            <span>{statusMessage}</span>
-          </div>
-        )}
-      </div>
-    );
-  }
 
   // --------------------------------------------------------------------------
   // 7. GOL IMINENTE: SURTO OFENSIVO (5M)

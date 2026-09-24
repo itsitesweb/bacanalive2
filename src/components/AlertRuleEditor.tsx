@@ -46,7 +46,7 @@ export const METRIC_OPTIONS: { value: AlertMetric; label: string; unit: string }
   { value: "debtGoals", label: "Dívida de Gols (Diagnóstico)", unit: "gols" },
   { value: "totalXg", label: "xG Total Combinado", unit: "xG" },
   { value: "xgDiff", label: "Diferença de xG Favorito", unit: "xG" },
-  { value: "cornersRecentWindow", label: "Blitz de Cantos (Janela Recente)", unit: "cantos" },
+
   { value: "chancesVariation5m", label: "Surto de Pressão 5m (Gol Iminente)", unit: "%" },
 ];
 
@@ -160,16 +160,7 @@ export function getRuleParameterSummaryPills(
     ];
   }
 
-  if (id.includes("corners") || name.includes("cantos")) {
-    const win = rulesConfig?.blitzCornerWindowMinutes ?? 8;
-    const minC = rulesConfig?.blitzMinCornersInWindow ?? 2;
-    const totalC = rulesConfig?.blitzMinTotalCorners ?? 6;
-    return [
-      { label: "Janela", value: `${win} min`, color: "border-amber-500/30 text-amber-300" },
-      { label: "Cantos Janela", value: `≥ ${minC}`, color: "border-amber-500/30 text-amber-300" },
-      { label: "Cantos Jogo", value: `≥ ${totalC}`, color: "border-cyan-500/30 text-cyan-300" },
-    ];
-  }
+
 
   if (id.includes("iminente") || name.includes("iminente") || id.includes("surto")) {
     return [

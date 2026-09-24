@@ -9,7 +9,6 @@ import {
   DominantTrailingEvaluation,
   ImminentGoalEvaluation,
   TrendAlertEvaluation,
-  PressaoCantosBlitzEvaluation,
   AmbasMarcamEvaluation,
   TraditionalRuleSignal,
   MatchRulesAnalysis,
@@ -72,14 +71,8 @@ export const DEFAULT_RULES_CONFIG: OperationalRulesConfig = {
   trendAlertPointThreshold: 65,
   superPressureConfig: DEFAULT_SUPER_PRESSURE_CONFIG,
   // Estratégias de Análise Tática e Pressão
-  enablePressaoCantosBlitz: true,
   enableAmbasMarcamBTTS: true,
   ambasMarcamConfig: DEFAULT_AMBAS_MARCAM_CONFIG,
-  // Configurações Específicas de Blitz de Cantos
-  blitzCornerWindowMinutes: 8,
-  blitzMinCornersInWindow: 2,
-  blitzMinTotalCorners: 6,
-  blitzMinMinute: 60,
   postGoalCooldownMinutes: 3,
   crawlerStartupCooldownMinutes: 3,
   enableGoalAlerts: true,
@@ -2526,93 +2519,6 @@ export function evaluateImminentGoal(
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// 7.1. PRESSÃO DE CANTOS / BLITZ NO TERÇO FINAL
-// ──────────────────────────────────────────────────────────────────────────
-export function evaluatePressaoCantosBlitz(
-  match: Match,
-  config: OperationalRulesConfig = DEFAULT_RULES_CONFIG
-): PressaoCantosBlitzEvaluation {
-  const min = match.minute || 0;
-  const totalCorners = (match.stats.corners.home || 0) + (match.stats.corners.away || 0);
-  const homeAttacks = match.stats.dangerousAttacksLast10?.home || 0;
-  const awayAttacks = match.stats.dangerousAttacksLast10?.away || 0;
-  const totalAttacks10 = homeAttacks + awayAttacks;
-  const attacksPerMinLast10 = Number((totalAttacks10 / 10).toFixed(2));
-  const avgPressure = ((match.stats.pressureIndex.home || 0) + (match.stats.pressureIndex.away || 0)) / 2;
-  const dominantTeam = homeAttacks > awayAttacks ? match.homeTeam.name : awayAttacks > homeAttacks ? match.awayTeam.name : undefined;
-
-  const windowMin = config.blitzCornerWindowMinutes ?? 8;
-  const isSecondHalf = min >= 46;
-  const halfStartMin = isSecondHalf ? 46 : 1;
-  const minWindowThreshold = Math.max(halfStartMin, min - windowMin);
-  const effectiveWindowMin = isSecondHalf ? Math.min(windowMin, min - 45) : Math.min(windowMin, min);
-  const minMinuteRequired = config.blitzMinMinute ?? 60;
-  const minTotalCornersRequired = config.blitzMinTotalCorners ?? 6;
-  const minCornersInWindowRequired = config.blitzMinCornersInWindow ?? 2;
-
-  if (config.enablePressaoCantosBlitz === false) {
-    return {
-      qualified: false,
-      minute: min,
-      recentCornersCount: 0,
-      cornerWindowMinutes: effectiveWindowMin,
-      totalCorners,
-      attacksPerMinLast10,
-      dominantTeam,
-      pressureAvg: avgPressure,
-      reason: "Regra desativada",
-    };
-  }
-
-  // Count corners in the recent sliding window from match events (strictly isolated within current half)
-  const recentCornersFromEvents = (match.events || []).filter(
-    (e) => (e.type === "corner" || (e as any).type === "escanteio") && e.minute >= minWindowThreshold && e.minute <= min
-  ).length;
-
-  let recentCorners = recentCornersFromEvents;
-
-  const isTimeQualified = min >= minMinuteRequired;
-  const isTotalCornersQualified = totalCorners >= minTotalCornersRequired;
-  const isCornerBurstQualified = recentCorners >= minCornersInWindowRequired;
-  const isPressureBlitz = attacksPerMinLast10 >= 0.7 || avgPressure >= 60;
-
-  const qualified = isTimeQualified && isTotalCornersQualified && isCornerBurstQualified && isPressureBlitz;
-
-  const reason = qualified
-    ? `Blitz no terço final: ${recentCorners} escanteios nos últimos ${effectiveWindowMin} minutos (Total: ${totalCorners}) com ${attacksPerMinLast10} ataques perigosos/min e pressão média de ${Math.round(avgPressure)}%.`
-    : `Sem blitz (${recentCorners}/${minCornersInWindowRequired} escanteios na janela de ${effectiveWindowMin}m, ${totalCorners}/${minTotalCornersRequired} acumulados aos ${min}').`;
-
-  let tacticalTip: TacticalTipData | undefined = undefined;
-  if (qualified) {
-    const prob = Math.min(94, Math.max(76, 75 + recentCorners * 5 + Math.round(attacksPerMinLast10 * 8)));
-    tacticalTip = generateBettingTip({
-      marketCode: "PRESSAO_CANTOS_BLITZ",
-      marketName: "Pressão de Cantos (Blitz Final)",
-      targetSelection: `Sequência de Cantos (${recentCorners} nos últimos ${windowMin}')`,
-      probabilityPct: prob,
-      confidence: prob >= 85 ? 'extrema' : 'alta',
-      reasoning: reason,
-      actionText: `Monitorar blitz ofensiva com sequência de escanteios no terço final (${dominantTeam ? dominantTeam + ' dominando' : 'Ambos atacando'})`,
-      match,
-      config,
-    });
-  }
-
-  return {
-    qualified,
-    minute: min,
-    recentCornersCount: recentCorners,
-    cornerWindowMinutes: windowMin,
-    totalCorners,
-    attacksPerMinLast10,
-    dominantTeam,
-    pressureAvg: avgPressure,
-    reason,
-    tacticalTip,
-  };
-}
-
-// ──────────────────────────────────────────────────────────────────────────
 // 8. AMBAS MARCAM (BTTS: SIM) - ALGORITMO APRIMORADO BILATERAL EDITÁVEL
 // ──────────────────────────────────────────────────────────────────────────
 export function evaluateAmbasMarcam(
@@ -3570,7 +3476,6 @@ export function evaluateAllMatchRules(
   const halfTimeValue = evaluateHalfTimeValue(match, unifiedConfig);
   const imminentGoal = evaluateImminentGoal(match, unifiedConfig);
   const trendAlert = evaluateTrendAlert(match, unifiedConfig);
-  const pressaoCantosBlitz = evaluatePressaoCantosBlitz(match, unifiedConfig);
   const ambasMarcam = evaluateAmbasMarcam(match, unifiedConfig);
   const traditionalSignals = evaluateTraditionalSignals(match, unifiedConfig);
 
@@ -3626,7 +3531,6 @@ export function evaluateAllMatchRules(
   if (halfTimeValue.qualified && halfTimeValue.bettingTip) activeTips.push(halfTimeValue.bettingTip);
   if (imminentGoal.isImminent && imminentGoal.bettingTip) activeTips.push(imminentGoal.bettingTip);
   if (config.enableTrendAlert !== false && trendAlert.qualified && trendAlert.bettingTip) activeTips.push(trendAlert.bettingTip);
-  if (pressaoCantosBlitz.qualified && pressaoCantosBlitz.tacticalTip) activeTips.push(pressaoCantosBlitz.tacticalTip);
   if (ambasMarcam.qualified && ambasMarcam.bettingTip) activeTips.push(ambasMarcam.bettingTip);
   if (config.enableV12OverBack !== false && traditionalSignals.length > 0) {
     const topSig = traditionalSignals[0];
@@ -3660,7 +3564,6 @@ export function evaluateAllMatchRules(
     halfTimeValue.qualified ||
     (config.enableImminentGoal && imminentGoal.isImminent && (imminentGoal.intensity === 'extrema' || imminentGoal.intensity === 'alta')) ||
     (config.enableTrendAlert !== false && trendAlert.qualified) ||
-    pressaoCantosBlitz.qualified ||
     ambasMarcam.qualified ||
     (config.enableV12OverBack !== false && traditionalSignals.length > 0);
 
@@ -3700,13 +3603,6 @@ export function evaluateAllMatchRules(
       label: `VALOR HT (${halfTimeValue.targetLine})`,
       level: halfTimeValue.confidenceTier === 'A' ? "premium" : "forte",
       market: "over",
-    };
-  } else if (pressaoCantosBlitz.qualified) {
-    primaryAlertBadge = {
-      emoji: "🚩",
-      label: `BLITZ DE CANTOS (+${pressaoCantosBlitz.recentCornersCount} em ${pressaoCantosBlitz.cornerWindowMinutes}')`,
-      level: "premium",
-      market: "corners",
     };
   } else if (codigo31.shouldAlert && codigo31.level && codigo31.market) {
     primaryAlertBadge = {
@@ -3792,7 +3688,6 @@ export function evaluateAllMatchRules(
     halfTimeValue,
     imminentGoal,
     trendAlert,
-    pressaoCantosBlitz,
     ambasMarcam,
     traditionalSignals,
     hasActiveOperationalAlert,

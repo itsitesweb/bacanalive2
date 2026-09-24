@@ -1,25 +1,19 @@
-// data/bacanalive_config.json
 {
   "version": "2.5.0-standalone-local",
-  "savedAt": "2026-09-23T14:59:15.322Z",
+  "savedAt": "2026-09-24T15:07:14.006Z",
   "userProfile": {
     "displayName": "Trader Local Pro",
     "role": "admin",
     "status": "approved",
     "crawlerToken": "footstats-crawler-live-key-99",
-    "mode": "local_standalone",
-    "uid": "local-standalone-user-01",
-    "email": "local.admin@footstats.pro",
-    "createdAt": "2026-09-09T15:45:59.673Z",
-    "lastLoginAt": "2026-09-09T15:45:59.673Z"
+    "mode": "local_standalone"
   },
   "preferences": {
     "viewMode": "grid",
     "sortOption": "tier",
     "soundEnabled": true,
     "customMatchOrder": [],
-    "leagueFilter": "all",
-    "favoriteMatchIds": []
+    "leagueFilter": "all"
   },
   "noiseReduction": {
     "hideFinishedMatches": true,
@@ -168,39 +162,38 @@
     "imminentGoalConfig": {
       "enabled": true,
       "windowMinutes": 5,
-      "minAvgPressure": 75,
-      "minConsistencyPct": 80,
+      "minAvgPressure": 72,
+      "minConsistencyPct": 60,
       "pointThreshold": 70,
       "minMinute": 20,
-      "minDangerousAttacks": 8,
-      "minShots": 2,
-      "extremePressureBypass": 85,
       "minMinute2T": 55,
       "cutoff1T": 38,
       "cutoff2T": 82,
+      "minDangerousAttacks": 2,
       "minDangerousAttacksPerMin": 1.6,
-      "minTargetOdd": 1.5
+      "minShots": 2,
+      "minTargetOdd": 1.5,
+      "extremePressureBypass": 80
     },
     "enableTrendAlert": true,
     "trendAlertWindowMinutes": 10,
     "trendAlertMinAvgPressure": 70,
     "trendAlertMinConsistencyPct": 70,
-    "trendAlertMinMinute": 20,
+    "trendAlertMinMinute": 10,
     "trendAlertPointThreshold": 65,
     "superPressureConfig": {
       "enabled": true,
-      "minAvgPressure": 70,
-      "minConsistencyPct": 70,
-      "windowMinutes": 10,
+      "minAvgPressure": 68,
+      "minConsistencyPct": 65,
+      "windowMinutes": 15,
       "minMinute": 20,
-      "pointThreshold": 65,
+      "pointThreshold": 60,
       "minFinalizations": 2,
       "cutoff1T": 38,
       "cutoff2T": 82,
       "minTargetOdd1T": 1.6,
       "minTargetOdd2T": 1.7
     },
-    "enablePressaoCantosBlitz": true,
     "enableAmbasMarcamBTTS": true,
     "ambasMarcamConfig": {
       "enabled": true,
@@ -221,25 +214,23 @@
       "blockIfBlowout": true,
       "windowMinutes": 10
     },
-    "blitzCornerWindowMinutes": 8,
-    "blitzMinCornersInWindow": 2,
-    "blitzMinTotalCorners": 6,
-    "blitzMinMinute": 60,
     "postGoalCooldownMinutes": 3,
     "crawlerStartupCooldownMinutes": 3,
+    "enableGoalAlerts": true,
+    "showGoalAlerts": true,
     "crawlerConfig": {
       "mode": "node",
-      "maxWatchlistSize": 15,
+      "maxWatchlistSize": 20,
       "tier3ReservedSlots": 2,
       "discoveryIntervalSeconds": 180,
       "concurrentWorkers": 4,
       "routeResourceBlock": true,
       "enableBackgroundDiscovery": true,
-      "autoPruneMinutes": 30,
-      "noStatsBackoffMinutes": 10,
-      "minEntryMinute": 20,
+      "autoPruneMinutes": 10,
+      "noStatsBackoffMinutes": 5,
+      "minEntryMinute": 1,
       "maxEntryMinute": 83,
-      "antiSpamCooldownMinutes": 5,
+      "antiSpamCooldownMinutes": 2,
       "startupCooldownMinutes": 3,
       "matchReadTimeoutMs": 5000,
       "discoveryTimeoutMs": 12000,
@@ -261,125 +252,7 @@
     "soundAlertsEnabled": true,
     "minMinuteAlert": 3,
     "maxMinuteAlert": 85,
-    "viteDebugMode": false,
-    "enableRaceToCorners": true,
-    "enableJogoQuenteCards": true,
-    "enableRiscoExpulsao": true,
-    "enableUnderValue": true,
-    "enableViradaImprovavel": true,
-    "enableCashoutProativo": true,
-    "underValueMinMinute": 25,
-    "underValueMaxMinute": 78,
-    "underValueMaxXg": 0.6,
-    "underValueMaxSot": 2,
-    "primaryBookmaker": "betano",
-    "enabledBookmakers": [
-      "bet365",
-      "betfair",
-      "pinnacle",
-      "betano",
-      "esportivabet",
-      "sportingbet",
-      "kto",
-      "superbet",
-      "1xbet"
-    ],
-    "bookmakerCredentials": {
-      "bet365": {
-        "bookmakerId": "bet365",
-        "name": "Bet365",
-        "enabled": true,
-        "apiKey": "b365_live_api_99a8b7c6d5e4f3a2",
-        "environment": "production",
-        "connectionStatus": "connected",
-        "lastTested": "2026-08-21T09:15:00.000Z",
-        "latencyMs": 38,
-        "notes": "API Sportsbook Live & Mercados Asiáticos"
-      },
-      "betfair": {
-        "bookmakerId": "betfair",
-        "name": "Betfair Exchange",
-        "enabled": true,
-        "apiKey": "bfair_app_key_88f9e0a1b2c3d4e5",
-        "apiSecret": "bfair_session_token_live",
-        "environment": "production",
-        "connectionStatus": "connected",
-        "lastTested": "2026-08-21T09:15:00.000Z",
-        "latencyMs": 42,
-        "notes": "Bolsa Esportiva & Liquidez Back/Lay em tempo real"
-      },
-      "pinnacle": {
-        "bookmakerId": "pinnacle",
-        "name": "Pinnacle",
-        "enabled": true,
-        "apiKey": "pinn_sharp_key_77e6d5c4b3a2f1e0",
-        "environment": "production",
-        "connectionStatus": "connected",
-        "lastTested": "2026-08-21T09:15:00.000Z",
-        "latencyMs": 29,
-        "notes": "Sharp Bookmaker com menor margem e maiores limites"
-      },
-      "betano": {
-        "bookmakerId": "betano",
-        "name": "Betano",
-        "enabled": true,
-        "apiKey": "beta_live_feed_66d5c4b3a2f1e099",
-        "environment": "production",
-        "connectionStatus": "connected",
-        "lastTested": "2026-08-21T09:15:00.000Z",
-        "latencyMs": 51,
-        "notes": "SuperOdds & Mercados Especiais de Estatísticas"
-      },
-      "esportivabet": {
-        "bookmakerId": "esportivabet",
-        "name": "Esportiva Bet",
-        "enabled": true,
-        "apiKey": "espb_live_api_44a3b2c1d0",
-        "environment": "production",
-        "connectionStatus": "connected",
-        "lastTested": "2026-08-21T09:20:00.000Z",
-        "latencyMs": 44,
-        "notes": "Casa nacional com saques rápidos via PIX, odds turbinadas e mercados ao vivo"
-      },
-      "sportingbet": {
-        "bookmakerId": "sportingbet",
-        "name": "Sportingbet",
-        "enabled": false,
-        "apiKey": "",
-        "environment": "sandbox",
-        "connectionStatus": "unconfigured",
-        "notes": "Sportsbook Tradicional com Mercados de Gols"
-      },
-      "kto": {
-        "bookmakerId": "kto",
-        "name": "KTO",
-        "enabled": false,
-        "apiKey": "",
-        "environment": "sandbox",
-        "connectionStatus": "unconfigured",
-        "notes": "Mercados Brasileiros e Rápidos"
-      },
-      "superbet": {
-        "bookmakerId": "superbet",
-        "name": "Superbet",
-        "enabled": false,
-        "apiKey": "",
-        "environment": "sandbox",
-        "connectionStatus": "unconfigured",
-        "notes": "SuperPlacar e Cotações Turbinadas"
-      },
-      "1xbet": {
-        "bookmakerId": "1xbet",
-        "name": "1xBet",
-        "enabled": false,
-        "apiKey": "",
-        "environment": "sandbox",
-        "connectionStatus": "unconfigured",
-        "notes": "Ampla cobertura de ligas alternativas"
-      }
-    },
-    "enableGoalAlerts": false,
-    "showGoalAlerts": false
+    "viteDebugMode": false
   },
   "alertRules": [
     {
@@ -399,15 +272,14 @@
         {
           "metric": "minute",
           "operator": ">=",
-          "value": 20
+          "value": 10
         }
       ],
       "severity": "opportunity",
       "soundEnabled": true,
       "browserNotification": true,
       "messageTemplate": "📈 TREND ALERT: {dominantTeam} mantém super pressão contínua ({dominantPressure}% em {pressureWindow}m) aos {minute}'! Probabilidade elevada de gol (Placar: {score}).",
-      "triggerCount": 3,
-      "lastTriggered": "2026-09-23T14:54:51.069Z",
+      "triggerCount": 0,
       "minFrequencyMinutes": 5
     },
     {
@@ -558,12 +430,12 @@
       "browserNotification": true,
       "messageTemplate": "⚽ AMBAS MARCAM (BTTS: SIM) aos {minute}'! {teamHome} x {teamAway} (Placar: {score}). {bttsReasoning}. Probabilidade estimada: {bttsProb}%. Odd Justa: @{bttsFairOdd} | Odd Mínima: @{bttsMinOdd}.",
       "triggerCount": 0,
-      "minFrequencyMinutes": 5
+      "minFrequencyMinutes": 15
     },
     {
       "id": "rule-gol-iminente-surto",
       "name": "🚨 Gol Iminente: Surto Ofensivo (5m)",
-      "description": "Alerta de alta agressividade com janela de 5 minutos. Detecta pressão contínua (>=72% de média, >=60% de consistência) e blitz ofensiva imediata, com proteção de reset por gol e intervalo.",
+      "description": "Alerta de alta agressividade com janela fixa de 5 minutos. Detecta pressão contínua e blitz ofensiva imediata, com proteção de reset por gol e intervalo.",
       "matchId": "all",
       "enabled": true,
       "logic": "AND",
@@ -576,16 +448,14 @@
         {
           "metric": "minute",
           "operator": ">=",
-          "value": 20
+          "value": 5
         }
       ],
       "severity": "critical",
       "soundEnabled": true,
       "browserNotification": true,
       "messageTemplate": "🚨 GOL IMINENTE: Blitz ofensiva de 5m aos {minute}'! {teamHome} {score} {teamAway}. Pressão sufocante e alta agressividade recente. Entrada recomendada a favor do dominante!",
-      "triggerCount": 1,
-      "lastTriggered": "2026-09-23T14:47:54.756Z",
-      "minFrequencyMinutes": 5
+      "triggerCount": 0
     }
   ],
   "customWebhooks": [
@@ -600,11 +470,9 @@
       "autoTriggerAlerts": true,
       "autoComputeMomentum": true,
       "targetLeague": "Brasileirão Série A / Libertadores / Premier League",
-      "createdAt": "2026-09-01T17:41:57.226Z",
-      "totalCalls": 234,
-      "lastStatus": "ok",
-      "lastCallTimestamp": "2026-09-23T14:59:09.419Z",
-      "lastSourceIp": "127.0.0.1"
+      "createdAt": "2026-09-24T15:07:13.999Z",
+      "totalCalls": 0,
+      "lastStatus": "ok"
     }
   ],
   "customUserSettings": {}

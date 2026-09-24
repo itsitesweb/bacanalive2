@@ -1257,34 +1257,6 @@ export class MatchStore {
           case "cornersCombined":
             actualVal = match.stats.corners.home + match.stats.corners.away;
             break;
-          case "cornersRecentWindow": {
-            const windowMin = cond.windowMinutes && cond.windowMinutes > 0 ? cond.windowMinutes : 8;
-            const curMin = Math.max(1, match.minute || 1);
-            const isSecondHalf = curMin >= 46;
-            const halfStartMin = isSecondHalf ? 46 : 1;
-            const lastGoalMin = getLastGoalMinute(match);
-
-            // REGRA: Se o jogo está no 2T, o início da janela NÃO pode ser no 1T (não cruza o intervalo HT).
-            // E se houve gol recente, a janela começa estritamente após o gol.
-            const minThreshold = (lastGoalMin !== null && curMin >= lastGoalMin)
-              ? Math.max(lastGoalMin + 1, halfStartMin, curMin - windowMin)
-              : Math.max(halfStartMin, curMin - windowMin);
-
-            // 1. Histórico de cantos rastreado da partida (estritamente entre minThreshold e curMin)
-            const cornerList = this.matchCornersHistory.get(match.id) || [];
-            const recentCornersFromHistory = cornerList.filter(
-              (c) => c.minute >= minThreshold && c.minute <= curMin
-            ).length;
-
-            // 2. Eventos explícitos do tipo corner (estritamente entre minThreshold e curMin)
-            const recentCornersFromEvents = (match.events || []).filter(
-              (e) => (e.type === "corner" || (e as any).type === "escanteio") && e.minute >= minThreshold && e.minute <= curMin
-            ).length;
-
-            let totalRecent = Math.max(recentCornersFromHistory, recentCornersFromEvents);
-            actualVal = totalRecent;
-            break;
-          }
           case "cornersHome":
             actualVal = match.stats.corners.home;
             break;
@@ -1619,32 +1591,7 @@ export class MatchStore {
         const realUnderdogTeam = finalIsHomeDominant ? match.awayTeam.name : match.homeTeam.name;
         const dominantPressureVal = finalIsHomeDominant ? pressureHomeAvgWindowVal : pressureAwayAvgWindowVal;
 
-        // Janela recente de escanteios (configurável da regra)
-        const cornerCond = rule.conditions.find((c) => c.metric === "cornersRecentWindow");
-        const nominalCornerWindow = cornerCond?.windowMinutes && cornerCond.windowMinutes > 0 ? cornerCond.windowMinutes : 8;
-        const curMinForCorners = Math.max(1, match.minute || 1);
-        const isSecondHalfCorners = curMinForCorners >= 46;
-        const halfStartMinCorners = isSecondHalfCorners ? 46 : 1;
-        const lastGoalMinCorners = getLastGoalMinute(match);
-
-        // Se estiver no 2T, o início da janela NÃO pode recuar para o 1T (não cruza o intervalo HT)
-        const minCornerThreshold = (lastGoalMinCorners !== null && curMinForCorners >= lastGoalMinCorners)
-          ? Math.max(lastGoalMinCorners + 1, halfStartMinCorners, curMinForCorners - nominalCornerWindow)
-          : Math.max(halfStartMinCorners, curMinForCorners - nominalCornerWindow);
-
-        // A janela contínua efetiva transcorrida no tempo atual (ex: aos 51' no 2T, decorreram 6 minutos de jogo no 2T, não 8)
-        const effectiveCornerWindow = isSecondHalfCorners
-          ? Math.min(nominalCornerWindow, curMinForCorners - 45)
-          : Math.min(nominalCornerWindow, curMinForCorners);
-
-        const cornerHistoryList = this.matchCornersHistory.get(match.id) || [];
-        const recentCornersHist = cornerHistoryList.filter(
-          (c) => c.minute >= minCornerThreshold && c.minute <= curMinForCorners
-        ).length;
-        const recentCornersEvts = (match.events || []).filter(
-          (e) => (e.type === "corner" || (e as any).type === "escanteio") && e.minute >= minCornerThreshold && e.minute <= curMinForCorners
-        ).length;
-        let recentCornersVal = Math.max(recentCornersHist, recentCornersEvts);
+        const recentCornersVal = 0;
 
         const isRedCardRule = hasRedCardMetric;
 
@@ -1663,8 +1610,8 @@ export class MatchStore {
           .replace("{pressureAwayAvgWindow}", `${pressureAwayAvgWindowVal}`)
           .replace("{pressureWindow}", `${windowMinVal}`)
           .replace("{recentCorners}", `${recentCornersVal}`)
-          .replace("{cornerWindow}", `${effectiveCornerWindow}`)
-          .replace("{cornerWindowMinutes}", `${effectiveCornerWindow}`)
+          .replace("{cornerWindow}", "8")
+          .replace("{cornerWindowMinutes}", "8")
           .replace("{higherXg}", higherXg)
           .replace("{lowerXg}", lowerXg)
           .replace("{score}", `${match.score.home} - ${match.score.away}`)

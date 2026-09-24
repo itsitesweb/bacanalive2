@@ -139,7 +139,6 @@ export type AlertMetric =
   | 'pressureHomeAvgWindow'
   | 'pressureAwayAvgWindow'
   | 'pressureTrendWindow'
-  | 'cornersRecentWindow'
   | 'pressureAway'
   | 'pressureDiff'
   | 'xgDiff'
@@ -545,15 +544,8 @@ export interface OperationalRulesConfig {
   trendAlertMinMinute?: number; // Minuto mínimo da partida para disparar (Padrão: 15)
   trendAlertPointThreshold?: number; // Limiar de pressão instantânea por minuto (Padrão: 60%)
   superPressureConfig?: SuperPressureTrendConfig; // Configuração unificada e editável de Blitz e Super Pressão Contínua (Regra 1)
-  enablePressaoCantosBlitz?: boolean; // Alerta de Pressão de Cantos (Múltiplos escanteios em curto espaço de tempo / Blitz)
   enableAmbasMarcamBTTS: boolean; // Ambas Marcam (BTTS Sim)
   ambasMarcamConfig?: AmbasMarcamConfig; // Configuração editável da regra Ambas Marcam (BTTS Sim)
-
-  // Configuração Específica de PRESSÃO DE CANTOS (BLITZ)
-  blitzCornerWindowMinutes?: number; // Janela de minutos recentes para calcular sequência de escanteios (Padrão: 8 min)
-  blitzMinCornersInWindow?: number; // Quantidade mínima de escanteios na janela recente para caracterizar blitz (Padrão: 2)
-  blitzMinTotalCorners?: number; // Quantidade mínima de escanteios acumulados no jogo (Padrão: 6)
-  blitzMinMinute?: number; // Minuto mínimo da partida para disparar blitz (Padrão: 60)
 
   // Cooldown Geral do Sistema
   postGoalCooldownMinutes?: number; // Padrão: 3 (Cooldown geral após qualquer gol na partida em minutos/180s)
@@ -1168,13 +1160,8 @@ export const DEFAULT_MODAL_CONFIG: OperationalRulesConfig = {
   trendAlertMinMinute: 10,
   trendAlertPointThreshold: 65,
   superPressureConfig: DEFAULT_SUPER_PRESSURE_CONFIG,
-  enablePressaoCantosBlitz: true,
   enableAmbasMarcamBTTS: true,
   ambasMarcamConfig: DEFAULT_AMBAS_MARCAM_CONFIG,
-  blitzCornerWindowMinutes: 8,
-  blitzMinCornersInWindow: 2,
-  blitzMinTotalCorners: 6,
-  blitzMinMinute: 60,
   postGoalCooldownMinutes: 3,
   crawlerStartupCooldownMinutes: 3,
   enableGoalAlerts: true,
