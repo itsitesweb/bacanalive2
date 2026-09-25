@@ -66,7 +66,6 @@ export const DEFAULT_LOCAL_ALERT_RULES: AlertRule[] = [
     browserNotification: true,
     messageTemplate: "📈 TREND ALERT: {dominantTeam} mantém super pressão contínua ({dominantPressure}% em {pressureWindow}m) aos {minute}'! Probabilidade elevada de gol (Placar: {score}).",
     triggerCount: 0,
-    minFrequencyMinutes: 5,
   },
   {
     id: "rule-diagnostico-classico",
@@ -85,7 +84,6 @@ export const DEFAULT_LOCAL_ALERT_RULES: AlertRule[] = [
     browserNotification: true,
     messageTemplate: "⚡ DIAGNÓSTICO CLÁSSICO: Dívida de {debtGoals} gol(s) aos {minute}'! {dominantTeam} ({higherXg} xG) x ({lowerXg} xG) {underdogTeam} (dif. +{xgDiff}, total {totalXg} xG) para placar {score}. Probabilidade elevada de GOL/OVER.",
     triggerCount: 0,
-    minFrequencyMinutes: 5,
   },
   {
     id: "rule-trinca-de-dividas",
@@ -103,7 +101,6 @@ export const DEFAULT_LOCAL_ALERT_RULES: AlertRule[] = [
     browserNotification: true,
     messageTemplate: "💎 TRINCA DE DÍVIDAS ATIVA ({tripleDebtScope}) aos {minute}'! Time devedor: {debtorTeam}. Placar: {score}. CC no escopo: {ccInScope}, xG: {xgInScope}, xGOT: {xgotInScope}. Altíssima probabilidade de gol!",
     triggerCount: 0,
-    minFrequencyMinutes: 5,
   },
   {
     id: "rule-super-back-dominante",
@@ -122,7 +119,6 @@ export const DEFAULT_LOCAL_ALERT_RULES: AlertRule[] = [
     browserNotification: true,
     messageTemplate: "🔥 SUPER BACK QUALIFICADO: {dominantTeam} sufocando no 2T ({minute}'). xG: {dominantXg} vs {opponentXg}, Chutes (10m): {shotsInWindow}, AP/min: {apPerMin}. Odd Mínima Recomendada: >= [{targetOdd}].",
     triggerCount: 0,
-    minFrequencyMinutes: 5,
   },
   {
     id: "rule-v12-over-back",
@@ -141,7 +137,6 @@ export const DEFAULT_LOCAL_ALERT_RULES: AlertRule[] = [
     browserNotification: true,
     messageTemplate: "📈 SINAL V1.2 ATIVO: [{v12RuleName}] aos {minute}'! Mercado: {v12Market} (Tier: {v12Tier}). {v12Trace}. Placar: {score}.",
     triggerCount: 0,
-    minFrequencyMinutes: 5,
   },
   {
     id: "rule-ambas-marcam-btts",
@@ -160,7 +155,6 @@ export const DEFAULT_LOCAL_ALERT_RULES: AlertRule[] = [
     browserNotification: true,
     messageTemplate: "⚽ AMBAS MARCAM (BTTS: SIM) aos {minute}'! {teamHome} x {teamAway} (Placar: {score}). {bttsReasoning}. Probabilidade estimada: {bttsProb}%. Odd Justa: @{bttsFairOdd} | Odd Mínima: @{bttsMinOdd}.",
     triggerCount: 0,
-    minFrequencyMinutes: 15,
   },
   {
     id: "rule-gol-iminente-surto",

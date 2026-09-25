@@ -190,7 +190,6 @@ export interface AlertRule {
   soundEnabled: boolean;
   browserNotification: boolean;
   messageTemplate: string;
-  minFrequencyMinutes?: number; // Intervalo mínimo de resguardo (cooldown) entre disparos da mesma regra na mesma partida
   lastTriggered?: string;
   triggerCount: number;
 }
@@ -572,6 +571,7 @@ export interface OperationalRulesConfig {
   // Cooldown Geral do Sistema
   postGoalCooldownMinutes?: number; // Padrão: 3 (Cooldown geral após qualquer gol na partida em minutos/180s)
   crawlerStartupCooldownMinutes?: number; // Padrão: 3 (Cooldown geral na inicialização do Crawler para estabilização de grade)
+  alertCooldownMinutes?: number; // Padrão: 5 (Intervalo mínimo unificado de resguardo / cooldown entre disparos de regras na partida)
 
   // Configuração de Faixa de Probabilidade dos Alertas (%)
   minAlertProbabilityPct?: number; // Padrão: 50%

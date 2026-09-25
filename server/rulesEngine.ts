@@ -75,6 +75,7 @@ export const DEFAULT_RULES_CONFIG: OperationalRulesConfig = {
   ambasMarcamConfig: DEFAULT_AMBAS_MARCAM_CONFIG,
   postGoalCooldownMinutes: 1,
   crawlerStartupCooldownMinutes: 0.5,
+  alertCooldownMinutes: 5,
   enableGoalAlerts: true,
   showGoalAlerts: true,
   crawlerConfig: {
