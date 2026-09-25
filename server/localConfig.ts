@@ -120,24 +120,7 @@ export const DEFAULT_LOCAL_ALERT_RULES: AlertRule[] = [
     messageTemplate: "🔥 SUPER BACK QUALIFICADO: {dominantTeam} sufocando no 2T ({minute}'). xG: {dominantXg} vs {opponentXg}, Chutes (10m): {shotsInWindow}, AP/min: {apPerMin}. Odd Mínima Recomendada: >= [{targetOdd}].",
     triggerCount: 0,
   },
-  {
-    id: "rule-v12-over-back",
-    name: "📈 V12 Over & Back Alavancado (Regras Tradicionais V1.2)",
-    description: "Alerta transferido do Terminal Python (Regra 5). Sinais analíticos de alta conversão: Over Premium (36-50'), Over Bilateral Forte (36-65'), Over Gol Limite (76-83') e Back T1 Main com base em taxa de Chances Claras (min/CC) e xGOT.",
-    matchId: "all",
-    enabled: true,
-    logic: "AND",
-    conditions: [
-      { metric: "v12OverBackQualified", operator: "==", value: 1 },
-      { metric: "minute", operator: ">=", value: 35 },
-      { metric: "minute", operator: "<=", value: 88 },
-    ],
-    severity: "opportunity",
-    soundEnabled: true,
-    browserNotification: true,
-    messageTemplate: "📈 SINAL V1.2 ATIVO: [{v12RuleName}] aos {minute}'! Mercado: {v12Market} (Tier: {v12Tier}). {v12Trace}. Placar: {score}.",
-    triggerCount: 0,
-  },
+
   {
     id: "rule-ambas-marcam-btts",
     name: "⚽ Ambas Marcam (BTTS: Sim) - Ritmo Bilateral",
@@ -282,26 +265,6 @@ export class LocalConfigManager {
           operationalConfig: {
             ...(parsed.operationalConfig || {}),
             ...defaults.operationalConfig,
-            v12Config: {
-              ...((parsed.operationalConfig && parsed.operationalConfig.v12Config) || {}),
-              ...defaults.operationalConfig.v12Config,
-              overPremium: {
-                ...((parsed.operationalConfig && parsed.operationalConfig.v12Config && parsed.operationalConfig.v12Config.overPremium) || {}),
-                ...defaults.operationalConfig.v12Config?.overPremium,
-              },
-              overBilateralForte: {
-                ...((parsed.operationalConfig && parsed.operationalConfig.v12Config && parsed.operationalConfig.v12Config.overBilateralForte) || {}),
-                ...defaults.operationalConfig.v12Config?.overBilateralForte,
-              },
-              overGolLimite: {
-                ...((parsed.operationalConfig && parsed.operationalConfig.v12Config && parsed.operationalConfig.v12Config.overGolLimite) || {}),
-                ...defaults.operationalConfig.v12Config?.overGolLimite,
-              },
-              backT1Main: {
-                ...((parsed.operationalConfig && parsed.operationalConfig.v12Config && parsed.operationalConfig.v12Config.backT1Main) || {}),
-                ...defaults.operationalConfig.v12Config?.backT1Main,
-              },
-            },
             superPressureConfig: {
               ...((parsed.operationalConfig && parsed.operationalConfig.superPressureConfig) || {}),
               ...defaults.operationalConfig.superPressureConfig,
@@ -417,11 +380,6 @@ export class LocalConfigManager {
               const defaultSBD = defaults.alertRules.find((r) => r.id === "rule-super-back-dominante");
               if (defaultSBD) updated.push(defaultSBD);
             }
-            // Adiciona a regra migrada V12 Over & Back Alavancado (Regra 4) se ainda não existir
-            if (!updated.some((r) => r.id === "rule-v12-over-back")) {
-              const defaultV12 = defaults.alertRules.find((r) => r.id === "rule-v12-over-back");
-              if (defaultV12) updated.push(defaultV12);
-            }
             // Adiciona a regra migrada Ambas Marcam (BTTS Sim) se ainda não existir
             if (!updated.some((r) => r.id === "rule-ambas-marcam-btts")) {
               const defaultBTTS = defaults.alertRules.find((r) => r.id === "rule-ambas-marcam-btts");
@@ -465,6 +423,7 @@ export class LocalConfigManager {
                 r.id !== "rule-sinal-valor-ht" &&
                 r.id !== "rule-pressao-vendavel" &&
                 r.id !== "rule-back-dominante-desvantagem" &&
+                r.id !== "rule-v12-over-back" &&
                 r.id !== "rule-v12-over-premium" &&
                 r.id !== "rule-v12-over-bilateral-forte" &&
                 r.id !== "rule-v12-over-gol-limite" &&

@@ -25,11 +25,9 @@ import {
   SuperPressureTrendConfig,
   TripleDebtConfig,
   SuperBackDominanteConfig,
-  V12RulesConfig,
   GoalDebtClassicConfig,
   DEFAULT_SUPER_BACK_DOMINANTE_CONFIG,
   DEFAULT_TRIPLE_DEBT_CONFIG,
-  DEFAULT_V12_CONFIG,
   DEFAULT_GOAL_DEBT_CLASSIC_CONFIG,
   AmbasMarcamConfig,
   DEFAULT_AMBAS_MARCAM_CONFIG,
@@ -998,77 +996,96 @@ export function RuleParametersEditor({
           <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-sky-400 font-bold text-xs flex items-center gap-1.5">
-                <Clock className="w-4 h-4" /> Janela de Minutos
+                <Clock className="w-4 h-4" /> Janela de Minutos (2T)
               </label>
-              <span className="text-xs font-mono font-bold text-sky-300">{sbd.minMinute}&apos; a {sbd.maxMinute}&apos;</span>
+              <span className="text-xs font-mono font-bold text-sky-300">{sbd.minMinute ?? 55}&apos; a {sbd.maxMinute ?? 78}&apos;</span>
             </div>
             <div className="flex items-center gap-1.5">
               <input
                 type="number"
-                min={5}
-                max={45}
-                value={sbd.minMinute}
-                onChange={(e) => updateSBD({ minMinute: parseInt(e.target.value) || 20 })}
+                min={45}
+                max={75}
+                value={sbd.minMinute ?? 55}
+                onChange={(e) => updateSBD({ minMinute: parseInt(e.target.value) || 55 })}
                 className="w-full bg-slate-950 border border-slate-700 focus:border-sky-500 rounded-lg px-2 py-1.5 text-xs text-center font-mono text-white font-bold"
               />
               <span className="text-slate-500 text-xs font-bold">a</span>
               <input
                 type="number"
-                min={50}
-                max={90}
-                value={sbd.maxMinute}
-                onChange={(e) => updateSBD({ maxMinute: parseInt(e.target.value) || 82 })}
+                min={60}
+                max={85}
+                value={sbd.maxMinute ?? 78}
+                onChange={(e) => updateSBD({ maxMinute: parseInt(e.target.value) || 78 })}
                 className="w-full bg-slate-950 border border-slate-700 focus:border-sky-500 rounded-lg px-2 py-1.5 text-xs text-center font-mono text-white font-bold"
               />
             </div>
             <p className="text-[10px] text-slate-500 leading-tight">
-              Faixa de minutos para entrada com alto valor esperado. (Padrão: <strong>20&apos; a 82&apos;</strong>)
+              Exclusivamente no 2T, entre 55' e 78' (Cutoff no minuto 78'). (Padrão: <strong>55&apos; a 78&apos;</strong>)
             </p>
           </div>
 
-          {/* Resguardo Pós-Gol (Cooldown) */}
+          {/* Odds Alvo Match Odds */}
           <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-purple-400 font-bold text-xs flex items-center gap-1.5">
-                <Clock className="w-4 h-4" /> Resguardo Pós-Gol (Cooldown)
+              <label className="text-amber-400 font-bold text-xs flex items-center gap-1.5">
+                <Target className="w-4 h-4" /> Odds Alvo Match Odds
               </label>
-              <span className="text-xs font-mono font-bold text-purple-300">
-                {sbd.postGoalCooldownMinutes ?? 3} min
+              <span className="text-xs font-mono font-bold text-amber-300">
+                Empate ≥ {sbd.targetOddDraw ?? 1.75} | 0x1 ≥ {sbd.targetOddLosing ?? 2.20}
               </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] text-slate-400 block mb-0.5">Odd Empate</label>
+                <input
+                  type="number"
+                  step="0.05"
+                  min={1.40}
+                  max={3.00}
+                  value={sbd.targetOddDraw ?? 1.75}
+                  onChange={(e) => updateSBD({ targetOddDraw: parseFloat(e.target.value) || 1.75 })}
+                  className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-lg px-2 py-1 text-xs text-center font-mono text-white font-bold"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-400 block mb-0.5">Odd Perdendo (0x1)</label>
+                <input
+                  type="number"
+                  step="0.05"
+                  min={1.80}
+                  max={4.50}
+                  value={sbd.targetOddLosing ?? 2.20}
+                  onChange={(e) => updateSBD({ targetOddLosing: parseFloat(e.target.value) || 2.20 })}
+                  className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-lg px-2 py-1 text-xs text-center font-mono text-white font-bold"
+                />
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-500 leading-tight">
+              Pisos mínimos de cotação para valor esperado positivo (EV+). (Padrão: <strong>1.75</strong> / <strong>2.20</strong>)
+            </p>
+          </div>
+
+          {/* Finalizações Mínimas (Min Chutes) */}
+          <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-emerald-400 font-bold text-xs flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4" /> Finalizações Mínimas (10m)
+              </label>
+              <span className="text-xs font-mono font-bold text-emerald-300">≥ {sbd.minShotsInWindow ?? 2} chutes</span>
             </div>
             <div className="flex items-center gap-2">
               <input
                 type="number"
                 min={1}
-                max={15}
-                value={sbd.postGoalCooldownMinutes ?? 3}
-                onChange={(e) =>
-                  updateSBD({
-                    postGoalCooldownMinutes: parseInt(e.target.value) || 3,
-                  })
-                }
-                className="w-full bg-slate-950 border border-slate-700 focus:border-purple-500 rounded-lg px-2.5 py-1.5 text-xs text-center font-mono text-white font-bold"
+                max={5}
+                value={sbd.minShotsInWindow ?? 2}
+                onChange={(e) => updateSBD({ minShotsInWindow: parseInt(e.target.value) || 2 })}
+                className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded-lg px-2.5 py-1.5 text-xs text-center font-mono text-white font-bold"
               />
-              <span className="text-xs text-slate-400 font-bold">min</span>
-            </div>
-            <div className="flex items-center gap-1 flex-wrap pt-1">
-              {[1, 2, 3, 4, 5, 8].map((val) => (
-                <button
-                  key={val}
-                  type="button"
-                  onClick={() => updateSBD({ postGoalCooldownMinutes: val })}
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition ${
-                    (sbd.postGoalCooldownMinutes ?? 3) === val
-                      ? "bg-purple-500 text-white font-black"
-                      : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
-                  }`}
-                >
-                  {val}m
-                </button>
-              ))}
+              <span className="text-xs text-slate-400 font-bold">chutes</span>
             </div>
             <p className="text-[10px] text-slate-500 leading-tight">
-              Tempo de congelamento de alerta após qualquer gol marcado no jogo. (Padrão: <strong>4 min</strong>)
+              Elimina favorito estéril exigindo finalizações reais recentes. (Padrão: <strong>≥ 2 chutes</strong>)
             </p>
           </div>
         </div>
@@ -1594,387 +1611,6 @@ export function RuleParametersEditor({
 
 
   // --------------------------------------------------------------------------
-  // 7. GOL IMINENTE: SURTO OFENSIVO (5M)
-  // --------------------------------------------------------------------------
-  if (isImminentGoalRule) {
-    const imm: ImminentGoalConfig = rulesConfig.imminentGoalConfig || DEFAULT_IMMINENT_GOAL_CONFIG;
-    const isGloballyEnabled = rulesConfig.enableImminentGoal !== false && imm.enabled !== false;
-
-    const updateImm = (patch: Partial<ImminentGoalConfig>) => {
-      const updated: ImminentGoalConfig = {
-        ...imm,
-        ...patch,
-      };
-      saveConfigPatch(
-        {
-          imminentGoalConfig: updated,
-          enableImminentGoal: updated.enabled !== false,
-        },
-        "Parâmetros de Gol Iminente (Surto Ofensivo) salvos no disco!"
-      );
-
-      if (onSaveRule && rule) {
-        onSaveRule({
-          ...rule,
-          name: `🚨 Gol Iminente: Surto Ofensivo (${updated.windowMinutes ?? 5}m)`,
-          enabled: updated.enabled !== false,
-          description: `Alerta de alta agressividade com janela de ${updated.windowMinutes ?? 5} minutos. Detecta pressão contínua (>=${updated.minAvgPressure ?? 72}% de média, >=${updated.minConsistencyPct ?? 60}% de consistência) e blitz ofensiva imediata, com proteção de reset por gol e intervalo.`,
-          conditions: [
-            { metric: "imminentGoalQualified", operator: "==", value: 1 },
-            { metric: "minute", operator: ">=", value: updated.minMinute ?? 5 },
-          ],
-        });
-      }
-    };
-
-    const resetToDefaults = () => {
-      saveConfigPatch(
-        {
-          imminentGoalConfig: DEFAULT_IMMINENT_GOAL_CONFIG,
-          enableImminentGoal: true,
-        },
-        "Parâmetros de Gol Iminente restaurados para o padrão de fábrica!"
-      );
-
-      if (onSaveRule && rule) {
-        onSaveRule({
-          ...rule,
-          name: "🚨 Gol Iminente: Surto Ofensivo (5m)",
-          enabled: true,
-          description: "Alerta de alta agressividade com janela fixa de 5 minutos. Detecta pressão contínua e blitz ofensiva imediata, com proteção de reset por gol e intervalo.",
-          conditions: [
-            { metric: "imminentGoalQualified", operator: "==", value: 1 },
-            { metric: "minute", operator: ">=", value: 5 },
-          ],
-        });
-      }
-    };
-
-    return (
-      <div className="p-4 bg-slate-950/80 border border-rose-500/40 rounded-2xl space-y-4">
-        {/* Header com Toggle e Reset */}
-        <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <Flame className="w-4 h-4 text-rose-400" />
-            <span className="font-bold text-xs text-white">
-              Parâmetros Editáveis: Gol Iminente (Surto Ofensivo)
-            </span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-300 border border-rose-500/30">
-              Regra 7 • Blitz Calibrada
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={resetToDefaults}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-300 text-xs font-semibold transition"
-            >
-              <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
-              <span>Restaurar Padrões</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => updateImm({ enabled: !isGloballyEnabled })}
-              className={`px-3 py-1 rounded-lg font-bold text-xs transition border flex items-center gap-1.5 ${
-                isGloballyEnabled
-                  ? "bg-rose-500/20 text-rose-300 border-rose-500/40"
-                  : "bg-slate-900 text-slate-400 border-slate-800"
-              }`}
-            >
-              <Power className="w-3 h-3" />
-              <span>{isGloballyEnabled ? "✓ Alerta Ativo" : "✕ Alerta Pausado"}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Descrição Didática */}
-        <div className="p-3 bg-rose-950/20 border border-rose-500/20 rounded-xl text-[11px] text-slate-300 leading-relaxed space-y-1">
-          <p>
-            <strong className="text-rose-400">Motor Parametrizado de Alta Agressividade:</strong> Opera com a mesma precisão do{" "}
-            <strong>Trend Alert</strong>, mas focado na janela imediata de <strong>{imm.windowMinutes ?? 5} minutos</strong>.
-            Identifica blitz ofensiva sustentada, pressão sufocante recente e volume crítico no campo de ataque.
-          </p>
-          <p className="text-[10px] text-slate-400">
-            🛡️ <strong className="text-slate-300">Proteção Mandatória:</strong> Reseta a janela automaticamente ao sair gol ou ao intervalo (HT) para evitar resíduos de pressão passados.
-          </p>
-        </div>
-
-        {/* Grade de Parâmetros Editáveis */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {/* 1. Janela de Minutos */}
-          <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-amber-400 font-bold text-xs flex items-center gap-1.5">
-                <Clock className="w-4 h-4" /> Janela de Surto Recente
-              </label>
-              <span className="text-xs font-mono font-bold text-amber-300">{imm.windowMinutes ?? 5} min</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={2}
-                max={15}
-                value={imm.windowMinutes ?? 5}
-                onChange={(e) => updateImm({ windowMinutes: parseInt(e.target.value) || 5 })}
-                className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs text-center font-mono text-white font-bold"
-              />
-              <span className="text-xs text-slate-400 font-bold">min</span>
-            </div>
-            <div className="flex items-center gap-1 flex-wrap pt-1">
-              {[3, 5, 7, 10].map((val) => (
-                <button
-                  key={val}
-                  type="button"
-                  onClick={() => updateImm({ windowMinutes: val })}
-                  className={`px-2 py-0.5 rounded text-[10px] font-mono transition ${
-                    (imm.windowMinutes ?? 5) === val
-                      ? "bg-amber-500 text-slate-950 font-bold"
-                      : "bg-slate-800 text-slate-400 hover:text-white"
-                  }`}
-                >
-                  {val}m
-                </button>
-              ))}
-            </div>
-            <p className="text-[10px] text-slate-500 leading-tight">Timeline recente retroativa pós-gol ou pós-HT.</p>
-          </div>
-
-          {/* 2. Pressão Média Mínima */}
-          <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-rose-400 font-bold text-xs flex items-center gap-1.5">
-                <Flame className="w-4 h-4" /> Pressão Média Mínima
-              </label>
-              <span className="text-xs font-mono font-bold text-rose-300">≥ {imm.minAvgPressure ?? 72}%</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={55}
-                max={95}
-                value={imm.minAvgPressure ?? 72}
-                onChange={(e) => updateImm({ minAvgPressure: parseInt(e.target.value) || 72 })}
-                className="w-full bg-slate-950 border border-slate-700 focus:border-rose-500 rounded-lg px-2.5 py-1.5 text-xs text-center font-mono text-white font-bold"
-              />
-              <span className="text-xs text-slate-400 font-bold">%</span>
-            </div>
-            <div className="flex items-center gap-1 flex-wrap pt-1">
-              {[68, 70, 72, 75, 80].map((val) => (
-                <button
-                  key={val}
-                  type="button"
-                  onClick={() => updateImm({ minAvgPressure: val })}
-                  className={`px-2 py-0.5 rounded text-[10px] font-mono transition ${
-                    (imm.minAvgPressure ?? 72) === val
-                      ? "bg-rose-500 text-white font-bold"
-                      : "bg-slate-800 text-slate-400 hover:text-white"
-                  }`}
-                >
-                  {val}%
-                </button>
-              ))}
-            </div>
-            <p className="text-[10px] text-slate-500 leading-tight">Média contínua calculada na janela de surto.</p>
-          </div>
-
-          {/* 3. Consistência Mínima */}
-          <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-teal-400 font-bold text-xs flex items-center gap-1.5">
-                <Gauge className="w-4 h-4" /> Consistência no Ataque
-              </label>
-              <span className="text-xs font-mono font-bold text-teal-300">≥ {imm.minConsistencyPct ?? 60}%</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={40}
-                max={90}
-                value={imm.minConsistencyPct ?? 60}
-                onChange={(e) => updateImm({ minConsistencyPct: parseInt(e.target.value) || 60 })}
-                className="w-full bg-slate-950 border border-slate-700 focus:border-teal-500 rounded-lg px-2.5 py-1.5 text-xs text-center font-mono text-white font-bold"
-              />
-              <span className="text-xs text-slate-400 font-bold">%</span>
-            </div>
-            <div className="flex items-center gap-1 flex-wrap pt-1">
-              {[50, 60, 65, 70].map((val) => (
-                <button
-                  key={val}
-                  type="button"
-                  onClick={() => updateImm({ minConsistencyPct: val })}
-                  className={`px-2 py-0.5 rounded text-[10px] font-mono transition ${
-                    (imm.minConsistencyPct ?? 60) === val
-                      ? "bg-teal-500 text-slate-950 font-bold"
-                      : "bg-slate-800 text-slate-400 hover:text-white"
-                  }`}
-                >
-                  {val}%
-                </button>
-              ))}
-            </div>
-            <p className="text-[10px] text-slate-500 leading-tight">% de minutos da janela acuando o adversário.</p>
-          </div>
-
-          {/* 4. Limiar por Ponto (Consistência) */}
-          <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-purple-400 font-bold text-xs flex items-center gap-1.5">
-                <Target className="w-4 h-4" /> Limiar por Ponto (Minuto)
-              </label>
-              <span className="text-xs font-mono font-bold text-purple-300">≥ {imm.pointThreshold ?? 70}%</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={50}
-                max={85}
-                value={imm.pointThreshold ?? 70}
-                onChange={(e) => updateImm({ pointThreshold: parseInt(e.target.value) || 70 })}
-                className="w-full bg-slate-950 border border-slate-700 focus:border-purple-500 rounded-lg px-2.5 py-1.5 text-xs text-center font-mono text-white font-bold"
-              />
-              <span className="text-xs text-slate-400 font-bold">%</span>
-            </div>
-            <div className="flex items-center gap-1 flex-wrap pt-1">
-              {[60, 65, 70, 75].map((val) => (
-                <button
-                  key={val}
-                  type="button"
-                  onClick={() => updateImm({ pointThreshold: val })}
-                  className={`px-2 py-0.5 rounded text-[10px] font-mono transition ${
-                    (imm.pointThreshold ?? 70) === val
-                      ? "bg-purple-500 text-white font-bold"
-                      : "bg-slate-800 text-slate-400 hover:text-white"
-                  }`}
-                >
-                  {val}%
-                </button>
-              ))}
-            </div>
-            <p className="text-[10px] text-slate-500 leading-tight">Pressão instantânea necessária para somar consistência.</p>
-          </div>
-
-          {/* 5. Minuto Mínimo de Jogo */}
-          <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-cyan-400 font-bold text-xs flex items-center gap-1.5">
-                <Clock className="w-4 h-4" /> Minuto Inicial Mínimo
-              </label>
-              <span className="text-xs font-mono font-bold text-cyan-300">{imm.minMinute ?? 5}'</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={1}
-                max={45}
-                value={imm.minMinute ?? 5}
-                onChange={(e) => updateImm({ minMinute: parseInt(e.target.value) || 5 })}
-                className="w-full bg-slate-950 border border-slate-700 focus:border-cyan-500 rounded-lg px-2.5 py-1.5 text-xs text-center font-mono text-white font-bold"
-              />
-              <span className="text-xs text-slate-400 font-bold">min</span>
-            </div>
-            <div className="flex items-center gap-1 flex-wrap pt-1">
-              {[3, 5, 8, 10, 15].map((val) => (
-                <button
-                  key={val}
-                  type="button"
-                  onClick={() => updateImm({ minMinute: val })}
-                  className={`px-2 py-0.5 rounded text-[10px] font-mono transition ${
-                    (imm.minMinute ?? 5) === val
-                      ? "bg-cyan-500 text-slate-950 font-bold"
-                      : "bg-slate-800 text-slate-400 hover:text-white"
-                  }`}
-                >
-                  {val}'
-                </button>
-              ))}
-            </div>
-            <p className="text-[10px] text-slate-500 leading-tight">Tempo mínimo corrido para início da amostragem.</p>
-          </div>
-
-          {/* 6. Agressividade Fática (Ataques / Chutes / Bypass Extremo) */}
-          <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-emerald-400 font-bold text-xs flex items-center gap-1.5">
-                <Zap className="w-4 h-4" /> Validação Fática (Volume)
-              </label>
-              <span className="text-xs font-mono font-bold text-emerald-300">
-                {imm.minDangerousAttacks ?? 2} AP / {imm.minShots ?? 1} Ch
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <div>
-                <label className="text-[10px] text-slate-400 block mb-0.5">Min AP</label>
-                <input
-                  type="number"
-                  min={0}
-                  max={5}
-                  value={imm.minDangerousAttacks ?? 2}
-                  onChange={(e) => updateImm({ minDangerousAttacks: parseInt(e.target.value) || 0 })}
-                  className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded-lg px-2 py-1 text-xs text-center font-mono text-white font-bold"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] text-slate-400 block mb-0.5">Min Chutes</label>
-                <input
-                  type="number"
-                  min={0}
-                  max={4}
-                  value={imm.minShots ?? 1}
-                  onChange={(e) => updateImm({ minShots: parseInt(e.target.value) || 0 })}
-                  className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded-lg px-2 py-1 text-xs text-center font-mono text-white font-bold"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] text-slate-400 block mb-0.5">Bypass %</label>
-                <input
-                  type="number"
-                  min={70}
-                  max={95}
-                  value={imm.extremePressureBypass ?? 80}
-                  onChange={(e) => updateImm({ extremePressureBypass: parseInt(e.target.value) || 80 })}
-                  className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded-lg px-2 py-1 text-xs text-center font-mono text-white font-bold"
-                />
-              </div>
-            </div>
-            <p className="text-[10px] text-slate-500 leading-tight">
-              Exige {imm.minDangerousAttacks ?? 2} AP ou {imm.minShots ?? 1} Chute na janela, ou bypass caso pressão ≥ {imm.extremePressureBypass ?? 80}%.
-            </p>
-          </div>
-        </div>
-
-        {/* Resumo Operacional */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs pt-1">
-          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-0.5 text-center">
-            <span className="text-[10px] uppercase font-bold text-slate-400 block">Janela Atual</span>
-            <span className="text-sm font-mono font-black text-amber-300">{imm.windowMinutes ?? 5} min</span>
-          </div>
-          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-0.5 text-center">
-            <span className="text-[10px] uppercase font-bold text-slate-400 block">Pressão Corte</span>
-            <span className="text-sm font-mono font-black text-rose-400">≥ {imm.minAvgPressure ?? 72}%</span>
-          </div>
-          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-0.5 text-center">
-            <span className="text-[10px] uppercase font-bold text-slate-400 block">Consistência</span>
-            <span className="text-sm font-mono font-black text-teal-300">≥ {imm.minConsistencyPct ?? 60}%</span>
-          </div>
-          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-0.5 text-center">
-            <span className="text-[10px] uppercase font-bold text-slate-400 block">Resets Ativos</span>
-            <span className="text-sm font-mono font-black text-emerald-400">Gol & HT</span>
-          </div>
-        </div>
-
-        {statusMessage && (
-          <div className="p-2.5 bg-rose-500/15 border border-rose-500/40 rounded-xl text-rose-300 text-xs font-bold flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-rose-400" />
-            <span>{statusMessage}</span>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // --------------------------------------------------------------------------
   // 8. AMBAS MARCAM (BTTS: SIM) - RITMO BILATERAL
   // --------------------------------------------------------------------------
   if (isAmbasMarcamRule) {
@@ -2302,17 +1938,113 @@ export function RuleParametersEditor({
   }
 
   // --------------------------------------------------------------------------
-  // 8. REGRA GENÉRICA / CUSTOMIZADA
+  // 8. REGRA GENÉRICA / CUSTOMIZADA & CONFIGURAÇÃO GLOBAL DE COOLDOWNS
   // --------------------------------------------------------------------------
+  const postGoalCooldown = rulesConfig.postGoalCooldownMinutes ?? 3;
+  const alertCooldown = rulesConfig.alertCooldownMinutes ?? 5;
+
+  const updateGlobalCooldowns = (patch: { postGoalCooldownMinutes?: number; alertCooldownMinutes?: number }) => {
+    saveConfigPatch(patch, "Cooldowns globais (Pós-Gol e Alertas) atualizados com sucesso!");
+  };
+
   return (
-    <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-2xl space-y-3">
-      <div className="flex items-center gap-2 pb-2 border-b border-slate-800">
-        <Sliders className="w-4 h-4 text-cyan-400" />
-        <span className="font-bold text-xs text-white">Parâmetros Operacionais da Regra</span>
+    <div className="p-4 bg-slate-950/90 border border-purple-500/40 rounded-2xl space-y-4">
+      <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+        <div className="flex items-center gap-2">
+          <Clock className="w-4 h-4 text-purple-400" />
+          <span className="font-bold text-xs text-white">Resguardo Pós-Gol (Cooldown) & Cooldown Geral de Alertas</span>
+        </div>
+        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-950 text-purple-300 border border-purple-700/60">
+          Centralizado no Motor
+        </span>
       </div>
-      <p className="text-xs text-slate-400">
-        Esta regra opera com avaliação em tempo real das métricas da partida. Altere a ativação ou severidade diretamente no formulário principal.
+
+      <p className="text-xs text-slate-400 leading-relaxed">
+        Configuração unificada aplicável a todas as regras do motor para evitar disparos repetitivos e resguardar o sistema pós-gols:
       </p>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Bloco 1: Cooldown Pós-Gol */}
+        <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-rose-400 font-bold text-xs flex items-center gap-1.5">
+              <ShieldAlert className="w-3.5 h-3.5" /> Resguardo Pós-Gol
+            </label>
+            <span className="text-xs font-mono font-bold text-rose-300">{postGoalCooldown} min ({postGoalCooldown * 60}s)</span>
+          </div>
+          <input
+            type="number"
+            min={1}
+            max={15}
+            value={postGoalCooldown}
+            onChange={(e) => updateGlobalCooldowns({ postGoalCooldownMinutes: parseInt(e.target.value) || 3 })}
+            className="w-full bg-slate-950 border border-slate-700 focus:border-rose-500 rounded-lg px-2.5 py-1.5 text-xs text-center font-mono text-white font-bold"
+          />
+          <div className="flex items-center gap-1 flex-wrap pt-1">
+            {[1, 2, 3, 5, 10].map((val) => (
+              <button
+                key={val}
+                type="button"
+                onClick={() => updateGlobalCooldowns({ postGoalCooldownMinutes: val })}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold transition ${
+                  postGoalCooldown === val
+                    ? "bg-rose-500 text-slate-950 font-black"
+                    : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
+                }`}
+              >
+                {val} min
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-slate-500 leading-tight">
+            Congela novos alertas de Back/Pressão por {postGoalCooldown} minuto(s) após qualquer gol na partida. (Padrão: <strong>3 min</strong>)
+          </p>
+        </div>
+
+        {/* Bloco 2: Cooldown Geral de Alertas */}
+        <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-cyan-400 font-bold text-xs flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" /> Cooldown Geral de Alertas
+            </label>
+            <span className="text-xs font-mono font-bold text-cyan-300">{alertCooldown} min</span>
+          </div>
+          <input
+            type="number"
+            min={1}
+            max={30}
+            value={alertCooldown}
+            onChange={(e) => updateGlobalCooldowns({ alertCooldownMinutes: parseInt(e.target.value) || 5 })}
+            className="w-full bg-slate-950 border border-slate-700 focus:border-cyan-500 rounded-lg px-2.5 py-1.5 text-xs text-center font-mono text-white font-bold"
+          />
+          <div className="flex items-center gap-1 flex-wrap pt-1">
+            {[3, 5, 10, 15].map((val) => (
+              <button
+                key={val}
+                type="button"
+                onClick={() => updateGlobalCooldowns({ alertCooldownMinutes: val })}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold transition ${
+                  alertCooldown === val
+                    ? "bg-cyan-500 text-slate-950 font-black"
+                    : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
+                }`}
+              >
+                {val} min
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-slate-500 leading-tight">
+            Intervalo mínimo unificado entre repetições de alertas na mesma partida. (Padrão: <strong>5 min</strong>)
+          </p>
+        </div>
+      </div>
+
+      {statusMessage && (
+        <div className="p-2.5 bg-purple-500/15 border border-purple-500/40 rounded-xl text-purple-300 text-xs font-bold flex items-center gap-2">
+          <CheckCircle className="w-4 h-4 text-purple-400" />
+          <span>{statusMessage}</span>
+        </div>
+      )}
     </div>
   );
 }

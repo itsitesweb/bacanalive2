@@ -164,7 +164,6 @@ export type AlertMetric =
   | 'pressaoVendavelQualified'
   | 'dominantTrailingConfirmed'
   | 'superBackDominanteQualified'
-  | 'v12OverBackQualified'
   | 'ambasMarcamQualified'
   | 'imminentGoalQualified';
 
@@ -328,85 +327,6 @@ export type BettingTipData = TacticalTipData;
 // Regras e Alertas Python (Diagnóstico & Turbo)
 // ==========================================
 
-// Configuração Específica dos 4 Sinais Multimercado V1.2
-export interface V12OverPremiumConfig {
-  enabled: boolean;
-  minMinute: number; // Padrão: 36
-  maxMinute: number; // Padrão: 50
-  minTotalCc: number; // Padrão: 3
-  maxCcRate: number; // Padrão: 15.0 min/CC
-  minTeamCc: number; // Padrão: 1
-}
-
-export interface V12OverBilateralForteConfig {
-  enabled: boolean;
-  minMinute: number; // Padrão: 36
-  maxMinute: number; // Padrão: 65
-  minTotalCc: number; // Padrão: 4
-  maxCcRate: number; // Padrão: 15.0 min/CC
-  minTeamCc: number; // Padrão: 2
-}
-
-export interface V12OverGolLimiteConfig {
-  enabled: boolean;
-  minMinute: number; // Padrão: 76
-  maxMinute: number; // Padrão: 83
-  minTotalCc: number; // Padrão: 7
-  minTeamCc: number; // Padrão: 2
-  minScoreDiff: number; // Padrão: 1 (pelo menos 1 gol de diferença)
-}
-
-export interface V12BackT1MainConfig {
-  enabled: boolean;
-  minMinute: number; // Padrão: 36
-  maxMinute: number; // Padrão: 50
-  minDomCc: number; // Padrão: 3
-  maxOppCc: number; // Padrão: 0
-  minDomXgot: number; // Padrão: 0.50
-}
-
-export interface V12RulesConfig {
-  overPremium: V12OverPremiumConfig;
-  overBilateralForte: V12OverBilateralForteConfig;
-  overGolLimite: V12OverGolLimiteConfig;
-  backT1Main: V12BackT1MainConfig;
-}
-
-export const DEFAULT_V12_CONFIG: V12RulesConfig = {
-  overPremium: {
-    enabled: true,
-    minMinute: 36,
-    maxMinute: 50,
-    minTotalCc: 3,
-    maxCcRate: 15.0,
-    minTeamCc: 1,
-  },
-  overBilateralForte: {
-    enabled: true,
-    minMinute: 36,
-    maxMinute: 65,
-    minTotalCc: 4,
-    maxCcRate: 15.0,
-    minTeamCc: 2,
-  },
-  overGolLimite: {
-    enabled: true,
-    minMinute: 76,
-    maxMinute: 83,
-    minTotalCc: 7,
-    minTeamCc: 2,
-    minScoreDiff: 1,
-  },
-  backT1Main: {
-    enabled: true,
-    minMinute: 36,
-    maxMinute: 50,
-    minDomCc: 3,
-    maxOppCc: 0,
-    minDomXgot: 0.5,
-  },
-};
-
 export interface SuperPressureTrendConfig {
   enabled?: boolean; // Padrão: true
   minAvgPressure: number; // Padrão: 68% (Pressão média contínua da equipe dominante)
@@ -552,8 +472,6 @@ export interface OperationalRulesConfig {
   goalDebtClassicConfig?: GoalDebtClassicConfig; // Configurações editáveis da Dívida de Gols Tradicional
   enableHalfTimeValue?: boolean; // Sinal de Valor HT (30'-45')
   halfTimeValueConfig?: HalfTimeValueConfig; // Configurações editáveis do Sinal de Valor HT
-  enableV12OverBack: boolean;
-  v12Config?: V12RulesConfig; // Configurações detalhadas e editáveis dos 4 sinais clássicos V1.2
   enableImminentGoal: boolean; // Alerta de Gol Iminente (Surto 5m)
   imminentGoalConfig?: ImminentGoalConfig; // Configuração unificada e editável de Gol Iminente / Surto Ofensivo (Regra 7)
 

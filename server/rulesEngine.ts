@@ -59,8 +59,6 @@ export const DEFAULT_RULES_CONFIG: OperationalRulesConfig = {
   goalDebtClassicConfig: DEFAULT_GOAL_DEBT_CLASSIC_CONFIG,
   enableHalfTimeValue: true,
   halfTimeValueConfig: DEFAULT_HALFTIME_VALUE_CONFIG,
-  enableV12OverBack: true,
-  v12Config: DEFAULT_V12_CONFIG,
   enableImminentGoal: true,
   imminentGoalConfig: DEFAULT_IMMINENT_GOAL_CONFIG,
   enableTrendAlert: true,
@@ -1846,122 +1844,7 @@ export function evaluateHalfTimeValue(
   };
 }
 
-// ──────────────────────────────────────────────────────────────────────────
-// 5. REGRAS TRADICIONAIS V1.2 (OVER & BACK MULTIMERCADO EDITÁVEIS)
-// ──────────────────────────────────────────────────────────────────────────
-export function evaluateTraditionalSignals(
-  match: Match,
-  config: OperationalRulesConfig = DEFAULT_RULES_CONFIG
-): TraditionalRuleSignal[] {
-  const signals: TraditionalRuleSignal[] = [];
-  const min = match.minute || 0;
-  const bc = getMatchBigChances(match);
-  const totalBc = bc.total;
-  const minBc = Math.min(bc.home, bc.away);
-  const domBc = Math.max(bc.home, bc.away);
-  const oppBc = Math.min(bc.home, bc.away);
-  const totalGoals = (match.score.home || 0) + (match.score.away || 0);
-  const rate = totalBc > 0 ? min / totalBc : 999;
-  const isHomeDom = bc.home >= bc.away;
-  const domXgot = isHomeDom
-    ? (match.stats.xGOT?.home ?? match.stats.xG.home * 0.85)
-    : (match.stats.xGOT?.away ?? match.stats.xG.away * 0.85);
 
-  const v12Cfg = config.v12Config || DEFAULT_V12_CONFIG;
-  const op = v12Cfg.overPremium ?? DEFAULT_V12_CONFIG.overPremium;
-  const obf = v12Cfg.overBilateralForte ?? DEFAULT_V12_CONFIG.overBilateralForte;
-  const ogl = v12Cfg.overGolLimite ?? DEFAULT_V12_CONFIG.overGolLimite;
-  const btm = v12Cfg.backT1Main ?? DEFAULT_V12_CONFIG.backT1Main;
-
-  // 1. Over Premium (Padrão: Min 36-50, Total CC >= 3, Rate <= 15, Min CC >= 1)
-  if (
-    op.enabled !== false &&
-    min >= op.minMinute &&
-    min <= op.maxMinute &&
-    totalBc >= op.minTotalCc &&
-    rate <= op.maxCcRate &&
-    minBc >= op.minTeamCc
-  ) {
-    // Validação de Linha de Gols: Over 2.5 só existe se o jogo tiver no máximo 2 gols.
-    // Se o placar já tiver 3+ gols (ex: 3-1 = 4 gols), a linha de 2.5 já bateu!
-    // Nesse caso adaptamos para a linha viva real (Próximo Gol / Over seguinte) ou sinalizamos a linha correta.
-    const dynamicOver = formatDynamicOverSelection(totalGoals, 2.5);
-    const effectiveMarket = dynamicOver.marketCode;
-
-    signals.push({
-      ruleName: "OVER_PREMIUM",
-      marketTarget: effectiveMarket,
-      confidenceTier: "A-",
-      recommendedAction: "ENTER_OVER_PREMIUM",
-      trace: `Over Premium ativado (Total CC: ${totalBc}/${op.minTotalCc}, Rate: ${rate.toFixed(1)} min/CC <= ${op.maxCcRate}, Min CC: ${minBc}>=${op.minTeamCc}, Gols Atuais: ${totalGoals} -> Linha Dinâmica: ${dynamicOver.targetSelection})`,
-    });
-  }
-
-  // 2. Over Bilateral Forte (Padrão: Min 36-65, Total CC >= 4, Rate <= 15, Min CC >= 2)
-  if (
-    obf.enabled !== false &&
-    min >= obf.minMinute &&
-    min <= obf.maxMinute &&
-    totalBc >= obf.minTotalCc &&
-    rate <= obf.maxCcRate &&
-    minBc >= obf.minTeamCc
-  ) {
-    const dynamicOver = formatDynamicOverSelection(totalGoals, 2.5);
-    const effectiveMarket = dynamicOver.marketCode;
-
-    signals.push({
-      ruleName: "OVER_BILATERAL_FORTE",
-      marketTarget: effectiveMarket,
-      confidenceTier: "B+",
-      recommendedAction: "ENTER_OVER_BILATERAL_FORTE",
-      trace: `Over Bilateral Forte ativado (Total CC: ${totalBc}/${obf.minTotalCc}, Min CC: ${minBc}>=${obf.minTeamCc}, Rate: ${rate.toFixed(1)}<=${obf.maxCcRate}, Gols Atuais: ${totalGoals} -> Linha Dinâmica: ${dynamicOver.targetSelection})`,
-    });
-  }
-
-  // 3. Over Gol Limite (Padrão: Min 76-83, Total CC >= 7, Min CC >= 2, Diferença Placar >= 1)
-  const scoreDiff = Math.abs(match.score.home - match.score.away);
-  if (
-    ogl.enabled !== false &&
-    min >= ogl.minMinute &&
-    min <= ogl.maxMinute &&
-    totalBc >= ogl.minTotalCc &&
-    minBc >= ogl.minTeamCc &&
-    scoreDiff >= (ogl.minScoreDiff ?? 1)
-  ) {
-    signals.push({
-      ruleName: "OVER_GOL_LIMITE",
-      marketTarget: "NEXT_GOAL",
-      confidenceTier: "Especial",
-      recommendedAction: "ENTER_OVER_GOL_LIMITE",
-      trace: `Over Gol Limite no final (Total CC: ${totalBc}/${ogl.minTotalCc}, Min CC: ${minBc}>=${ogl.minTeamCc}, Gols: ${totalGoals}, Diferença: ${scoreDiff})`,
-    });
-  }
-
-  // 4. Back T1 Main (Padrão: Min 36-50, Dominante CC >= 3, Opp CC <= 0, xGOT >= 0.5, Placar empatado ou +1)
-  const domScore = isHomeDom ? (match.score.home || 0) : (match.score.away || 0);
-  const oppScore = isHomeDom ? (match.score.away || 0) : (match.score.home || 0);
-  const domLead = domScore - oppScore;
-  if (
-    btm.enabled !== false &&
-    min >= btm.minMinute &&
-    min <= btm.maxMinute &&
-    domBc >= btm.minDomCc &&
-    oppBc <= (btm.maxOppCc ?? 0) &&
-    domXgot >= btm.minDomXgot &&
-    domLead >= 0 &&
-    domLead < 2
-  ) {
-    signals.push({
-      ruleName: "BACK_T1_MAIN",
-      marketTarget: "BACK_DOMINANT",
-      confidenceTier: "A",
-      recommendedAction: "ENTER_BACK_T1_MAIN",
-      trace: `Back T1 Main ativado (Dom CC: ${domBc}/${btm.minDomCc}, Opp CC: ${oppBc}<=${btm.maxOppCc}, xGOT: ${domXgot.toFixed(2)}>=${btm.minDomXgot}, Placar: ${domScore}-${oppScore})`,
-    });
-  }
-
-  return signals;
-}
 
 // ──────────────────────────────────────────────────────────────────────────
 // 6. GOL IMINENTE: SURTO OFENSIVO (5 MINUTOS - ALTA AGRESSIVIDADE)
@@ -3454,7 +3337,6 @@ export function evaluateAllMatchRules(
         awaySot: match.stats.shotsOnTarget.away,
         currentScore: `${match.score.home} - ${match.score.away}`,
       },
-      traditionalSignals: [],
       hasActiveOperationalAlert: false,
       primaryAlertBadge: undefined,
       activeTips: [],
@@ -3471,7 +3353,6 @@ export function evaluateAllMatchRules(
   const imminentGoal = evaluateImminentGoal(match, unifiedConfig);
   const trendAlert = evaluateTrendAlert(match, unifiedConfig);
   const ambasMarcam = evaluateAmbasMarcam(match, unifiedConfig);
-  const traditionalSignals = evaluateTraditionalSignals(match, unifiedConfig);
 
   // ──────────────────────────────────────────────────────────────────────────
   // ENGINE DE CONFLUÊNCIA CRUZADA (REGRA 1 - TREND ALERT + REGRA 7 - SURTO 5M)
@@ -3526,27 +3407,6 @@ export function evaluateAllMatchRules(
   if (imminentGoal.isImminent && imminentGoal.bettingTip) activeTips.push(imminentGoal.bettingTip);
   if (config.enableTrendAlert !== false && trendAlert.qualified && trendAlert.bettingTip) activeTips.push(trendAlert.bettingTip);
   if (ambasMarcam.qualified && ambasMarcam.bettingTip) activeTips.push(ambasMarcam.bettingTip);
-  if (config.enableV12OverBack !== false && traditionalSignals.length > 0) {
-    const topSig = traditionalSignals[0];
-    const isOverMarket = topSig.marketTarget.startsWith("OVER_");
-    const formattedSelection = isOverMarket
-      ? `Over ${topSig.marketTarget.replace("OVER_", "").replace("_", ".")} Gols`
-      : topSig.marketTarget === "NEXT_GOAL"
-        ? "Próximo Gol"
-        : "Back Favorito";
-
-    const tip = generateBettingTip({
-      marketCode: topSig.marketTarget,
-      marketName: topSig.ruleName.replace(/_/g, " "),
-      targetSelection: formattedSelection,
-      probabilityPct: topSig.confidenceTier.startsWith("A") ? 82 : 74,
-      confidence: topSig.confidenceTier.startsWith("A") ? "extrema" : "alta",
-      reasoning: topSig.trace,
-      actionText: `Entrada recomendada via Sinal Tradicional V1.2: ${topSig.recommendedAction}.`,
-      match,
-    });
-    if (tip) activeTips.push(tip);
-  }
 
   let hasActiveOperationalAlert =
     codigo31.shouldAlert ||
@@ -3558,8 +3418,7 @@ export function evaluateAllMatchRules(
     halfTimeValue.qualified ||
     (config.enableImminentGoal && imminentGoal.isImminent && (imminentGoal.intensity === 'extrema' || imminentGoal.intensity === 'alta')) ||
     (config.enableTrendAlert !== false && trendAlert.qualified) ||
-    ambasMarcam.qualified ||
-    (config.enableV12OverBack !== false && traditionalSignals.length > 0);
+    ambasMarcam.qualified;
 
   let primaryAlertBadge: MatchRulesAnalysis["primaryAlertBadge"] = undefined;
   
@@ -3651,14 +3510,6 @@ export function evaluateAllMatchRules(
       level: "forte",
       market: "btts",
     };
-  } else if (config.enableV12OverBack !== false && traditionalSignals.length > 0) {
-    const topSig = traditionalSignals[0];
-    primaryAlertBadge = {
-      emoji: "📈",
-      label: `V1.2: ${topSig.ruleName.replace(/_/g, " ")}`,
-      level: topSig.confidenceTier.startsWith("A") ? "premium" : "forte",
-      market: topSig.marketTarget.includes("BACK") ? "back" : "over",
-    };
   }
 
   // Se a partida estiver sob resguardo / cooldown pós-gol de 3 minutos, neutraliza o alerta principal ativo
@@ -3683,7 +3534,6 @@ export function evaluateAllMatchRules(
     imminentGoal,
     trendAlert,
     ambasMarcam,
-    traditionalSignals,
     hasActiveOperationalAlert,
     primaryAlertBadge,
     activeTips,

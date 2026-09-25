@@ -2850,254 +2850,47 @@ export function LocalConfigModal({ isOpen, onClose, onConfigReloaded, initialTab
                 </div>
               </div>
 
-              {/* Parâmetros Centrais da Regra 7: Gol Iminente (Surto Ofensivo) */}
-              <div className="p-4 bg-slate-950/60 border border-rose-500/30 rounded-xl space-y-4">
+              {/* Resguardo Global Pós-Gol (Cooldown) */}
+              <div className="p-4 bg-slate-950/70 border border-purple-500/40 rounded-2xl space-y-3">
                 <div className="flex items-center justify-between flex-wrap gap-2">
-                  <h5 className="font-bold text-xs text-rose-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <Flame className="w-3.5 h-3.5 text-rose-400" />
-                    Regra 7: Gol Iminente & Surto Ofensivo
-                  </h5>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={rulesConfig.enableImminentGoal !== false && rulesConfig.imminentGoalConfig?.enabled !== false}
-                      onChange={(e) => {
-                        const enabled = e.target.checked;
-                        const currentImm = rulesConfig.imminentGoalConfig || {
-                          enabled: true,
-                          windowMinutes: 5,
-                          minAvgPressure: 72,
-                          minConsistencyPct: 60,
-                          pointThreshold: 70,
-                          minMinute: 5,
-                          minDangerousAttacks: 2,
-                          minShots: 1,
-                          extremePressureBypass: 80,
-                        };
-                        setRulesConfig({
-                          ...rulesConfig,
-                          enableImminentGoal: enabled,
-                          imminentGoalConfig: {
-                            ...currentImm,
-                            enabled,
-                          },
-                        });
-                      }}
-                      className="rounded bg-slate-900 border-slate-700 text-rose-500 focus:ring-rose-500"
-                    />
-                    <span className="text-xs text-slate-300 font-semibold">Alerta Ativo</span>
-                  </label>
-                </div>
-
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Configuração central da blitz imediata com proteção automática contra resíduo pós-gol e pós-HT.
-                </p>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">Janela (min)</label>
-                    <input
-                      type="number"
-                      min="2"
-                      max="15"
-                      value={rulesConfig.imminentGoalConfig?.windowMinutes ?? 5}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value) || 5;
-                        const currentImm = rulesConfig.imminentGoalConfig || {
-                          enabled: true,
-                          windowMinutes: 5,
-                          minAvgPressure: 72,
-                          minConsistencyPct: 60,
-                          pointThreshold: 70,
-                          minMinute: 5,
-                          minDangerousAttacks: 2,
-                          minShots: 1,
-                          extremePressureBypass: 80,
-                        };
-                        setRulesConfig({
-                          ...rulesConfig,
-                          imminentGoalConfig: { ...currentImm, windowMinutes: val },
-                        });
-                      }}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-amber-300 font-mono font-bold"
-                    />
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-purple-500/10 rounded-lg text-purple-400">
+                      <Clock className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-white text-sm">Resguardo Global Pós-Gol (Cooldown)</h4>
+                      <p className="text-xs text-slate-400">
+                        Tempo de congelamento de alertas após qualquer gol marcado no jogo (Padrão: <strong>{rulesConfig.postGoalCooldownMinutes ?? 3} min</strong>).
+                      </p>
+                    </div>
                   </div>
-
-                  <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">Pressão Média (≥ %)</label>
+                  <div className="flex items-center gap-2">
                     <input
                       type="number"
-                      min="55"
-                      max="95"
-                      value={rulesConfig.imminentGoalConfig?.minAvgPressure ?? 72}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value) || 72;
-                        const currentImm = rulesConfig.imminentGoalConfig || {
-                          enabled: true,
-                          windowMinutes: 5,
-                          minAvgPressure: 72,
-                          minConsistencyPct: 60,
-                          pointThreshold: 70,
-                          minMinute: 5,
-                          minDangerousAttacks: 2,
-                          minShots: 1,
-                          extremePressureBypass: 80,
-                        };
-                        setRulesConfig({
-                          ...rulesConfig,
-                          imminentGoalConfig: { ...currentImm, minAvgPressure: val },
-                        });
-                      }}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-rose-400 font-mono font-bold"
+                      min={1}
+                      max={15}
+                      value={rulesConfig.postGoalCooldownMinutes ?? 3}
+                      onChange={(e) => setRulesConfig({ ...rulesConfig, postGoalCooldownMinutes: parseInt(e.target.value) || 3 })}
+                      className="w-20 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-purple-300 font-mono font-bold text-center"
                     />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">Consistência (≥ %)</label>
-                    <input
-                      type="number"
-                      min="40"
-                      max="90"
-                      value={rulesConfig.imminentGoalConfig?.minConsistencyPct ?? 60}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value) || 60;
-                        const currentImm = rulesConfig.imminentGoalConfig || {
-                          enabled: true,
-                          windowMinutes: 5,
-                          minAvgPressure: 72,
-                          minConsistencyPct: 60,
-                          pointThreshold: 70,
-                          minMinute: 5,
-                          minDangerousAttacks: 2,
-                          minShots: 1,
-                          extremePressureBypass: 80,
-                        };
-                        setRulesConfig({
-                          ...rulesConfig,
-                          imminentGoalConfig: { ...currentImm, minConsistencyPct: val },
-                        });
-                      }}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-teal-300 font-mono font-bold"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">Minuto Inicial</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="45"
-                      value={rulesConfig.imminentGoalConfig?.minMinute ?? 5}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value) || 5;
-                        const currentImm = rulesConfig.imminentGoalConfig || {
-                          enabled: true,
-                          windowMinutes: 5,
-                          minAvgPressure: 72,
-                          minConsistencyPct: 60,
-                          pointThreshold: 70,
-                          minMinute: 5,
-                          minDangerousAttacks: 2,
-                          minShots: 1,
-                          extremePressureBypass: 80,
-                        };
-                        setRulesConfig({
-                          ...rulesConfig,
-                          imminentGoalConfig: { ...currentImm, minMinute: val },
-                        });
-                      }}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-cyan-300 font-mono font-bold"
-                    />
+                    <span className="text-xs text-slate-400 font-bold">min</span>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-3 gap-3 pt-1">
-                  <div>
-                    <label className="text-[10px] text-slate-400 block mb-1">Mínimo AP na Janela</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="5"
-                      value={rulesConfig.imminentGoalConfig?.minDangerousAttacks ?? 2}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value) || 0;
-                        const currentImm = rulesConfig.imminentGoalConfig || {
-                          enabled: true,
-                          windowMinutes: 5,
-                          minAvgPressure: 72,
-                          minConsistencyPct: 60,
-                          pointThreshold: 70,
-                          minMinute: 5,
-                          minDangerousAttacks: 2,
-                          minShots: 1,
-                          extremePressureBypass: 80,
-                        };
-                        setRulesConfig({
-                          ...rulesConfig,
-                          imminentGoalConfig: { ...currentImm, minDangerousAttacks: val },
-                        });
-                      }}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] text-slate-400 block mb-1">Mínimo Chutes na Janela</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="4"
-                      value={rulesConfig.imminentGoalConfig?.minShots ?? 1}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value) || 0;
-                        const currentImm = rulesConfig.imminentGoalConfig || {
-                          enabled: true,
-                          windowMinutes: 5,
-                          minAvgPressure: 72,
-                          minConsistencyPct: 60,
-                          pointThreshold: 70,
-                          minMinute: 5,
-                          minDangerousAttacks: 2,
-                          minShots: 1,
-                          extremePressureBypass: 80,
-                        };
-                        setRulesConfig({
-                          ...rulesConfig,
-                          imminentGoalConfig: { ...currentImm, minShots: val },
-                        });
-                      }}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] text-slate-400 block mb-1">Bypass Extremo (≥ %)</label>
-                    <input
-                      type="number"
-                      min="70"
-                      max="95"
-                      value={rulesConfig.imminentGoalConfig?.extremePressureBypass ?? 80}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value) || 80;
-                        const currentImm = rulesConfig.imminentGoalConfig || {
-                          enabled: true,
-                          windowMinutes: 5,
-                          minAvgPressure: 72,
-                          minConsistencyPct: 60,
-                          pointThreshold: 70,
-                          minMinute: 5,
-                          minDangerousAttacks: 2,
-                          minShots: 1,
-                          extremePressureBypass: 80,
-                        };
-                        setRulesConfig({
-                          ...rulesConfig,
-                          imminentGoalConfig: { ...currentImm, extremePressureBypass: val },
-                        });
-                      }}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono"
-                    />
-                  </div>
+                <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                  {[1, 2, 3, 4, 5, 8].map((val) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setRulesConfig({ ...rulesConfig, postGoalCooldownMinutes: val })}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                        (rulesConfig.postGoalCooldownMinutes ?? 3) === val
+                          ? "bg-purple-600 text-white shadow-sm"
+                          : "bg-slate-900 text-slate-400 hover:text-white border border-slate-800"
+                      }`}
+                    >
+                      {val} min
+                    </button>
+                  ))}
                 </div>
               </div>
 
