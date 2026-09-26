@@ -153,7 +153,7 @@ export const DEFAULT_LOCAL_ALERT_RULES: AlertRule[] = [
     severity: "critical",
     soundEnabled: true,
     browserNotification: true,
-    messageTemplate: "🚨 GOL IMINENTE: Blitz ofensiva de 5m aos {minute}'! {teamHome} {score} {teamAway}. Pressão sufocante e alta agressividade recente. Entrada recomendada a favor do dominante!",
+    messageTemplate: "🚨 GOL IMINENTE: Blitz ofensiva de 5m aos {minute}'! {teamHome} {score} {teamAway}. Pressão sufocante e alta agressividade recente. 🎯 Mercado: {targetMarket} | 👉 Ação: {actionText}",
     triggerCount: 0,
   },
 ];
