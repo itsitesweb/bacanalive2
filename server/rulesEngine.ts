@@ -16,7 +16,6 @@ import {
   BettingTipData,
   DEFAULT_SUPER_PRESSURE_CONFIG,
   DEFAULT_PRESSAO_VENDAVEL_CONFIG,
-  DEFAULT_TRIPLE_DEBT_CONFIG,
   DEFAULT_DOMINANT_TRAILING_CONFIG,
   DEFAULT_GOAL_DEBT_CLASSIC_CONFIG,
   DEFAULT_HALFTIME_VALUE_CONFIG,
@@ -25,7 +24,6 @@ import {
   HalfTimeValueConfig,
   HalfTimeValueEvaluation,
   PressaoVendavelConfig,
-  TripleDebtConfig,
   DominantTrailingConfig,
   SuperBackDominanteConfig,
   DEFAULT_SUPER_BACK_DOMINANTE_CONFIG,
@@ -46,8 +44,6 @@ export const DEFAULT_RULES_CONFIG: OperationalRulesConfig = {
   minAlertProbabilityPct: 50, // Faixa mínima de probabilidade para disparar alerta (%)
   maxAlertProbabilityPct: 100, // Faixa máxima de probabilidade para disparar alerta (%)
   enableCodigo31: false,
-  enableTripleDebt: true,
-  tripleDebtConfig: DEFAULT_TRIPLE_DEBT_CONFIG,
   enablePressaoVendavel: true,
   pressaoVendavelConfig: DEFAULT_PRESSAO_VENDAVEL_CONFIG,
   enableDominantTrailing: true,
@@ -628,196 +624,250 @@ Dívida de Gols: ${saldoGolsDevidos} gol(s)`;
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// 2. TRIPLO FILTRO DE DÍVIDA DE GOLS (TRIPLE DEBT FILTER)
+// 4.1. DÍVIDA DE GOLS TRADICIONAL & TRINCA CONFLUENTE (REGRA 2 UNIFICADA)
 // ──────────────────────────────────────────────────────────────────────────
-export function evaluateTripleDebt(
+export function evaluateGoalDebtClassic(
   match: Match,
   config: OperationalRulesConfig = DEFAULT_RULES_CONFIG
-): TripleDebtEvaluation {
-  const tdCfg = config.tripleDebtConfig || DEFAULT_TRIPLE_DEBT_CONFIG;
-  const isEnabled = config.enableTripleDebt !== false && tdCfg.enabled !== false;
+): GoalDebtClassicEvaluation {
+  const gdc = config.goalDebtClassicConfig || DEFAULT_GOAL_DEBT_CLASSIC_CONFIG;
+  const isEnabled = config.enableGoalDebtClassic !== false && gdc.enabled !== false;
+  const curMin = Math.max(1, match.minute || 1);
+  const homeScore = match.score.home || 0;
+  const awayScore = match.score.away || 0;
+  const scoreStr = `${homeScore} - ${awayScore}`;
+
+  const homeXg = match.stats.xG?.home ?? 0;
+  const awayXg = match.stats.xG?.away ?? 0;
+  const totalXg = Number((homeXg + awayXg).toFixed(2));
+  const isHomeDominant = homeXg >= awayXg;
+  const dominantTeam = isHomeDominant ? match.homeTeam.name : match.awayTeam.name;
+  const dominantSide: 'home' | 'away' = isHomeDominant ? 'home' : 'away';
+  const dominantXg = isHomeDominant ? homeXg : awayXg;
+  const dominantGoals = isHomeDominant ? homeScore : awayScore;
+  const underdogTeam = isHomeDominant ? match.awayTeam.name : match.homeTeam.name;
+  const underdogXg = isHomeDominant ? awayXg : homeXg;
+  const underdogGoals = isHomeDominant ? awayScore : homeScore;
+  const xgDiff = Number((dominantXg - underdogXg).toFixed(2));
+  const dominantXgDebt = Number(Math.max(0, dominantXg - dominantGoals).toFixed(2));
+
+  // Parâmetro Central do Radar & Sensibilidade
+  const radarSensitivity = gdc.radarSensitivity ?? 1.0;
+  const minXgDebtBase = gdc.minXgDebt ?? 0.85;
+  const minCcDominantBase = gdc.minCcDominant ?? 2;
+  const targetXgDebt = Number((minXgDebtBase * radarSensitivity).toFixed(2));
+  const targetCc = Math.round(minCcDominantBase * radarSensitivity);
+
+  // Cálculo da Dívida Líquida de Gols (Descontando Gols Marcados)
+  const dividaLiquidaXg = Number(Math.max(0, dominantXg - dominantGoals).toFixed(2));
+  const bc = getMatchBigChances(match);
+  const dominantCc = dominantSide === 'home' ? bc.home : bc.away;
+  const ratio = Math.max(1.0, config.chancesPerGoalRatio || 3.0);
+  const expectedGoalsByCc = Math.floor(bc.total / ratio);
+  const totalDebtGoals = Math.max(0, expectedGoalsByCc - (homeScore + awayScore), Math.round(totalXg - (homeScore + awayScore)));
+
   if (!isEnabled) {
     return {
-      tripleDebtFormed: false,
-      scope: 'none',
-      scopeSide: null,
-      ccInScope: 0,
-      xgInScope: 0,
-      xgotInScope: 0,
-      goalsInScope: 0,
-      expectedGoalsByCc: 0,
-      ccDebt: false,
-      xgDebt: false,
-      xgotDebt: false,
-      failedReasons: ['regra_desativada'],
-      blockReason: 'regra_desativada',
-      wouldBlockSignal: true,
-      statusBadge: '⚖️ Regra Desativada',
-    };
-  }
-
-  const bc = getMatchBigChances(match);
-  const hCc = bc.home;
-  const aCc = bc.away;
-  const totalCc = bc.total;
-
-  const hXg = match.stats.xG.home || 0;
-  const aXg = match.stats.xG.away || 0;
-  const totalXg = hXg + aXg;
-
-  const hXgot = match.stats.xGOT?.home ?? Number((hXg * 0.85).toFixed(2));
-  const aXgot = match.stats.xGOT?.away ?? Number((aXg * 0.85).toFixed(2));
-  const totalXgot = hXgot + aXgot;
-
-  const hG = match.score.home || 0;
-  const aG = match.score.away || 0;
-  const totalGoals = hG + aG;
-
-  const debtMargin = tdCfg.debtMarginXG ?? config.debtMarginXG ?? 1.0;
-  // Parâmetro Central do Radar (Fonte Única da Verdade: Regra 3:1)
-  const ratio = Math.max(1.0, config.chancesPerGoalRatio || 3.0);
-  const minUniCc = tdCfg.minUnilateralCc ?? 3;
-  const minBiCc = tdCfg.minBilateralCc ?? 3;
-  const minBiXg = tdCfg.minBilateralXg ?? 1.0;
-  const minBiXgot = tdCfg.minBilateralXgot ?? 1.0;
-  const minMinute = tdCfg.minMinute ?? 15;
-
-  const minute = match.minute || 0;
-  if (minute < minMinute) {
-    return {
-      tripleDebtFormed: false,
-      scope: 'none',
-      scopeSide: null,
-      ccInScope: 0,
-      xgInScope: 0,
-      xgotInScope: 0,
-      goalsInScope: totalGoals,
-      expectedGoalsByCc: 0,
+      qualified: false,
+      minute: curMin,
+      score: scoreStr,
+      totalDebtGoals: 0,
       ratioUsed: ratio,
-      ccDebt: false,
-      xgDebt: false,
-      xgotDebt: false,
-      failedReasons: [`minute < ${minMinute}`],
-      blockReason: `minute < ${minMinute}`,
-      wouldBlockSignal: true,
-      statusBadge: '⚖️ Minuto Inferior ao Mínimo',
+      totalXg,
+      xgDiff,
+      dominantTeam,
+      dominantSide,
+      dominantXg,
+      dominantGoals,
+      dominantXgDebt,
+      underdogTeam,
+      underdogXg,
+      underdogGoals,
+      isDevendoGol: false,
+      blockReason: "Regra de Dívida de Gols desativada",
+      reasoning: "",
+      actionText: "",
     };
   }
 
-  // Unilateral checks
-  const hHits = (hCc >= minUniCc ? 1 : 0) +
-    (hCc / (totalCc || 1) >= 0.7 ? 1 : 0) +
-    (hXg / (totalXg || 1) >= 0.65 ? 1 : 0) +
-    (hXgot / (totalXgot || 1) >= 0.65 ? 1 : 0) +
-    (aCc <= 1 || (hCc - aCc) >= 2 ? 1 : 0);
+  // Janela e Cutoffs: 1T (20'-38') e 2T (55'-82')
+  const minMinute = gdc.minMinute ?? 20;
+  const maxMinute1T = gdc.maxMinute1T ?? 38;
+  const maxMinute2T = gdc.maxMinute2T ?? 82;
+  const isInWindow = (curMin >= minMinute && curMin <= maxMinute1T) || (curMin >= 55 && curMin <= maxMinute2T);
 
-  const aHits = (aCc >= minUniCc ? 1 : 0) +
-    (aCc / (totalCc || 1) >= 0.7 ? 1 : 0) +
-    (aXg / (totalXg || 1) >= 0.65 ? 1 : 0) +
-    (aXgot / (totalXgot || 1) >= 0.65 ? 1 : 0) +
-    (hCc <= 1 || (aCc - hCc) >= 2 ? 1 : 0);
-
-  let scope: 'unilateral' | 'bilateral' | 'none' = 'none';
-  let scopeSide: 'home' | 'away' | 'total' | null = null;
-  let ccInScope = 0;
-  let xgInScope = 0;
-  let xgotInScope = 0;
-  let goalsInScope = 0;
-
-  if (hCc >= minUniCc && hHits >= 4) {
-    scope = 'unilateral';
-    scopeSide = 'home';
-    ccInScope = hCc;
-    xgInScope = hXg;
-    xgotInScope = hXgot;
-    goalsInScope = hG;
-  } else if (aCc >= minUniCc && aHits >= 4) {
-    scope = 'unilateral';
-    scopeSide = 'away';
-    ccInScope = aCc;
-    xgInScope = aXg;
-    xgotInScope = aXgot;
-    goalsInScope = aG;
-  } else if (totalCc >= minBiCc && totalXg >= minBiXg && totalXgot >= minBiXgot) {
-    scope = 'bilateral';
-    scopeSide = 'total';
-    ccInScope = totalCc;
-    xgInScope = totalXg;
-    xgotInScope = totalXgot;
-    goalsInScope = totalGoals;
+  if (!isInWindow) {
+    return {
+      qualified: false,
+      minute: curMin,
+      score: scoreStr,
+      totalDebtGoals,
+      ratioUsed: ratio,
+      totalXg,
+      xgDiff,
+      dominantTeam,
+      dominantSide,
+      dominantXg,
+      dominantGoals,
+      dominantXgDebt,
+      underdogTeam,
+      underdogXg,
+      underdogGoals,
+      isDevendoGol: dividaLiquidaXg >= targetXgDebt,
+      blockReason: `Fora da janela analítica (${minMinute}'-${maxMinute1T}' ou 55'-${maxMinute2T}')`,
+      reasoning: "",
+      actionText: "",
+    };
   }
 
-  const expectedGoalsByCc = Math.floor(ccInScope / ratio);
-  const ccDebt = expectedGoalsByCc > goalsInScope;
-  const xgDebt = xgInScope >= goalsInScope + debtMargin;
-  const xgotDebt = xgotInScope >= goalsInScope + debtMargin;
-
-  const failedReasons: string[] = [];
-  if (!ccDebt) failedReasons.push("triple_debt_failed_cc");
-  if (!xgDebt) failedReasons.push("triple_debt_failed_xg");
-  if (!xgotDebt) failedReasons.push("triple_debt_failed_xgot");
-
-  const tripleDebtFormed = scope !== 'none' && ccDebt && xgDebt && xgotDebt;
-  let blockReason: string | null = null;
-
-  if (scope === 'none') {
-    blockReason = "scope_not_classified";
-  } else if (failedReasons.length === 3) {
-    blockReason = "no_real_debt";
-  } else if (failedReasons.length > 0) {
-    blockReason = failedReasons.join("+");
+  // Resguardo Pós-Gol Unificado
+  const postGoalCooldown = config.postGoalCooldownMinutes ?? gdc.postGoalCooldownMinutes ?? 3;
+  if (postGoalCooldown > 0 && isWithinPostGoalSuppression(match, postGoalCooldown)) {
+    return {
+      qualified: false,
+      minute: curMin,
+      score: scoreStr,
+      totalDebtGoals,
+      ratioUsed: ratio,
+      totalXg,
+      xgDiff,
+      dominantTeam,
+      dominantSide,
+      dominantXg,
+      dominantGoals,
+      dominantXgDebt,
+      underdogTeam,
+      underdogXg,
+      underdogGoals,
+      isDevendoGol: false,
+      blockReason: `Resguardo pós-gol ativo (${postGoalCooldown}m)`,
+      reasoning: "",
+      actionText: "",
+    };
   }
 
-  const debtorTeamName = scope === 'unilateral'
-    ? (scopeSide === 'home' ? match.homeTeam.name : match.awayTeam.name)
-    : scope === 'bilateral'
-    ? 'Ambos os Times'
-    : undefined;
-
-  let statusBadge = "⚖️ Sem Dívida Trinca";
-  if (tripleDebtFormed) {
-    statusBadge = scope === 'unilateral' && debtorTeamName
-      ? `💎 TRINCA DE DÍVIDAS ATIVA (${debtorTeamName})`
-      : `💎 TRINCA DE DÍVIDAS ATIVA (${scope.toUpperCase()})`;
-  } else if (ccDebt || xgDebt || xgotDebt) {
-    statusBadge = `⚠️ Dívida Parcial (${[ccDebt ? 'CC' : '', xgDebt ? 'xG' : '', xgotDebt ? 'xGOT' : ''].filter(Boolean).join('+')})`;
+  // Travas Estreitas de Placar:
+  // - Permitir se Empatando (0x0, 1x1), Perdendo (0x1, 1x2) ou Vencendo por no máximo 1 gol (1x0, 2x1).
+  // - Bloquear se vencendo por >= 2 gols de diferença (ex: 2x0, 3x1) ou se dividaLiquidaXg < targetXgDebt.
+  const goalDiff = dominantGoals - underdogGoals;
+  if (goalDiff >= 2) {
+    return {
+      qualified: false,
+      minute: curMin,
+      score: scoreStr,
+      totalDebtGoals,
+      ratioUsed: ratio,
+      totalXg,
+      xgDiff,
+      dominantTeam,
+      dominantSide,
+      dominantXg,
+      dominantGoals,
+      dominantXgDebt,
+      underdogTeam,
+      underdogXg,
+      underdogGoals,
+      isDevendoGol: false,
+      blockReason: "Placar elástico: equipe dominante vence por 2+ gols de diferença",
+      reasoning: "",
+      actionText: "",
+    };
   }
 
-  let bettingTip: BettingTipData | undefined = undefined;
-  if (tripleDebtFormed) {
-    const isUni = scope === 'unilateral';
-    const targetName = debtorTeamName || 'Equipe Devedora';
-    bettingTip = generateBettingTip({
-      marketCode: isUni ? "TRIPLE_DEBT_UNILATERAL" : "TRIPLE_DEBT_OVER",
-      marketName: isUni ? `Próximo Gol (${targetName})` : `Over Gols (+0.5 Gol)`,
-      targetSelection: isUni ? `Gol de ${targetName}` : `Mais de ${goalsInScope + 0.5} Gols`,
-      probabilityPct: isUni ? 85 : 88,
-      confidence: 'extrema',
-      reasoning: `Tríplice Dívida Ativa: CC (${ccInScope}), xG (${xgInScope}) e xGOT (${xgotInScope}) com saldo atrasado de ${goalsInScope} gols marcados.`,
-      actionText: isUni ? `Entrada em Próximo Gol / Back de ${targetName}` : `Entrada em Over Gols à frente`,
-      match,
-      config,
-    });
+  if (dividaLiquidaXg < targetXgDebt) {
+    return {
+      qualified: false,
+      minute: curMin,
+      score: scoreStr,
+      totalDebtGoals,
+      ratioUsed: ratio,
+      totalXg,
+      xgDiff,
+      dominantTeam,
+      dominantSide,
+      dominantXg,
+      dominantGoals,
+      dominantXgDebt,
+      underdogTeam,
+      underdogXg,
+      underdogGoals,
+      isDevendoGol: false,
+      blockReason: `Dívida líquida de xG (${dividaLiquidaXg}) abaixo do limiar (${targetXgDebt})`,
+      reasoning: "",
+      actionText: "",
+    };
   }
+
+  if (dominantCc < targetCc) {
+    return {
+      qualified: false,
+      minute: curMin,
+      score: scoreStr,
+      totalDebtGoals,
+      ratioUsed: ratio,
+      totalXg,
+      xgDiff,
+      dominantTeam,
+      dominantSide,
+      dominantXg,
+      dominantGoals,
+      dominantXgDebt,
+      underdogTeam,
+      underdogXg,
+      underdogGoals,
+      isDevendoGol: true,
+      blockReason: `Chances claras (${dominantCc}) abaixo do mínimo necessário (${targetCc})`,
+      reasoning: "",
+      actionText: "",
+    };
+  }
+
+  // Severidade Máxima (Confluência Trinca): xGOT >= (0.80 * radarSensitivity) ou CC >= (targetCc + 1)
+  const xgot = match.stats.xGOT?.[dominantSide] ?? Number((dominantXg * 0.85).toFixed(2));
+  const isTripleDebt = xgot >= (0.80 * radarSensitivity) || dominantCc >= (targetCc + 1);
+
+  const reasoning = isTripleDebt
+    ? `⚠️ DÍVIDA DE GOLS CRÍTICA (Trinca xG+xGOT): ${dominantTeam} acumula Dívida Líquida de xG de ${dividaLiquidaXg.toFixed(2)} (${dominantXg} xG - ${dominantGoals} Gols) e ${dominantCc} CCs sem converter. Pressão por gol iminente!`
+    : `⚡ DIAGNÓSTICO CLÁSSICO: Dívida Líquida de xG de ${dividaLiquidaXg.toFixed(2)} para ${dominantTeam} aos ${curMin}'! Placar: ${scoreStr}. ${dominantCc} CCs criadas.`;
+
+  const actionText = isTripleDebt
+    ? `Entrada Imediata em Próximo Gol / Back ${dominantTeam} (Trinca de Dívidas Confluente)`
+    : `Entrada em Over Gols ou Back ${dominantTeam} (Dívida de Gols)`;
+
+  const prob = isTripleDebt ? 88 : 80;
+
+  const bettingTip = generateBettingTip({
+    marketCode: isTripleDebt ? "TRIPLE_DEBT_CRITICAL" : "GOAL_DEBT_CLASSIC",
+    marketName: isTripleDebt ? "Trinca de Dívidas & Dívida Crítica" : "Diagnóstico Clássico & Dívida de Gols",
+    targetSelection: dominantGoals <= underdogGoals ? `Back ${dominantTeam} / Over` : "Over Próximo Gol",
+    probabilityPct: prob,
+    confidence: isTripleDebt ? 'extrema' : 'alta',
+    reasoning,
+    actionText,
+    match,
+    config,
+  });
 
   return {
-    tripleDebtFormed,
-    scope,
-    scopeSide,
-    debtorTeamName,
-    ccInScope,
-    xgInScope: Number(xgInScope.toFixed(2)),
-    xgotInScope: Number(xgotInScope.toFixed(2)),
-    goalsInScope,
-    expectedGoalsByCc,
+    qualified: true,
+    minute: curMin,
+    score: scoreStr,
+    totalDebtGoals: Math.max(totalDebtGoals, Math.round(dividaLiquidaXg)),
     ratioUsed: ratio,
-    ccDebt,
-    xgDebt,
-    xgotDebt,
-    failedReasons,
-    blockReason,
-    wouldBlockSignal: !tripleDebtFormed,
-    statusBadge,
+    totalXg,
+    xgDiff,
+    dominantTeam,
+    dominantSide,
+    dominantXg,
+    dominantGoals,
+    dominantXgDebt: dividaLiquidaXg,
+    underdogTeam,
+    underdogXg,
+    underdogGoals,
+    isDevendoGol: true,
+    isTripleDebt,
+    reasoning,
+    actionText,
     bettingTip,
   };
 }
@@ -1434,240 +1484,7 @@ export function evaluateSuperBackDominante(
 
 
 
-// ──────────────────────────────────────────────────────────────────────────
-// 4.1. DÍVIDA DE GOLS TRADICIONAL / DIAGNÓSTICO CLÁSSICO
-// ──────────────────────────────────────────────────────────────────────────
-export function evaluateGoalDebtClassic(
-  match: Match,
-  config: OperationalRulesConfig = DEFAULT_RULES_CONFIG
-): GoalDebtClassicEvaluation {
-  const gdc = config.goalDebtClassicConfig || DEFAULT_GOAL_DEBT_CLASSIC_CONFIG;
-  const isEnabled = config.enableGoalDebtClassic !== false && gdc.enabled !== false;
-  const curMin = Math.max(1, match.minute || 1);
-  const homeScore = match.score.home || 0;
-  const awayScore = match.score.away || 0;
-  const totalGoals = homeScore + awayScore;
-  const scoreStr = `${homeScore} - ${awayScore}`;
 
-  const homeXg = match.stats.xG?.home ?? 0;
-  const awayXg = match.stats.xG?.away ?? 0;
-  const totalXg = Number((homeXg + awayXg).toFixed(2));
-  const isHomeDominant = homeXg >= awayXg;
-  const dominantTeam = isHomeDominant ? match.homeTeam.name : match.awayTeam.name;
-  const dominantSide: 'home' | 'away' = isHomeDominant ? 'home' : 'away';
-  const dominantXg = isHomeDominant ? homeXg : awayXg;
-  const dominantGoals = isHomeDominant ? homeScore : awayScore;
-  const underdogTeam = isHomeDominant ? match.awayTeam.name : match.homeTeam.name;
-  const underdogXg = isHomeDominant ? awayXg : homeXg;
-  const underdogGoals = isHomeDominant ? awayScore : homeScore;
-  const xgDiff = Number((dominantXg - underdogXg).toFixed(2));
-  const dominantXgDebt = Number(Math.max(0, dominantXg - dominantGoals).toFixed(2));
-
-  // Cálculo da dívida baseada em Chances Claras e xG (Fonte Única da Verdade: Parâmetro Central do Radar)
-  const bc = getMatchBigChances(match);
-  const ratio = Math.max(1.0, config.chancesPerGoalRatio || 3.0);
-  const expectedGoalsByCc = Math.floor(bc.total / ratio);
-  const totalDebtGoals = Math.max(0, expectedGoalsByCc - totalGoals, Math.round(totalXg - totalGoals));
-  const isDevendoGol = totalGoals < expectedGoalsByCc || totalXg - totalGoals >= (gdc.minDebtGoals || 1.0);
-
-  if (!isEnabled) {
-    return {
-      qualified: false,
-      minute: curMin,
-      score: scoreStr,
-      totalDebtGoals: 0,
-      ratioUsed: ratio,
-      totalXg,
-      xgDiff,
-      dominantTeam,
-      dominantSide,
-      dominantXg,
-      dominantGoals,
-      dominantXgDebt,
-      underdogTeam,
-      underdogXg,
-      underdogGoals,
-      isDevendoGol: false,
-      blockReason: "Regra de Dívida de Gols Clássica desativada",
-      reasoning: "",
-      actionText: "",
-    };
-  }
-
-  // Validação temporal
-  if (curMin < gdc.minMinute || curMin > gdc.maxMinute) {
-    return {
-      qualified: false,
-      minute: curMin,
-      score: scoreStr,
-      totalDebtGoals,
-      ratioUsed: ratio,
-      totalXg,
-      xgDiff,
-      dominantTeam,
-      dominantSide,
-      dominantXg,
-      dominantGoals,
-      dominantXgDebt,
-      underdogTeam,
-      underdogXg,
-      underdogGoals,
-      isDevendoGol,
-      blockReason: `Fora da janela (${gdc.minMinute}'-${gdc.maxMinute}')`,
-      reasoning: "",
-      actionText: "",
-    };
-  }
-
-  // Resguardo Pós-Gol Unificado (Cooldown geral após qualquer gol na partida)
-  const postGoalCooldown = config.postGoalCooldownMinutes ?? gdc.postGoalCooldownMinutes ?? 3;
-  if (postGoalCooldown > 0 && isWithinPostGoalSuppression(match, postGoalCooldown)) {
-    const lastGoalMin = getLastGoalMinute(match);
-    return {
-      qualified: false,
-      minute: curMin,
-      score: scoreStr,
-      totalDebtGoals,
-      ratioUsed: ratio,
-      totalXg,
-      xgDiff,
-      dominantTeam,
-      dominantSide,
-      dominantXg,
-      dominantGoals,
-      dominantXgDebt,
-      underdogTeam,
-      underdogXg,
-      underdogGoals,
-      isDevendoGol: false,
-      blockReason: `Resguardo pós-gol ativo (${postGoalCooldown}m unificado${lastGoalMin !== null ? ` após gol aos ${lastGoalMin}'` : ""})`,
-      reasoning: "",
-      actionText: "",
-    };
-  }
-
-  // Filtros de bloqueio inteligente:
-  // 1. Dominante já marcou >= xG e está vencendo
-  if (gdc.blockIfDebtPaid && dominantGoals > underdogGoals && dominantGoals >= dominantXg) {
-    return {
-      qualified: false,
-      minute: curMin,
-      score: scoreStr,
-      totalDebtGoals,
-      ratioUsed: ratio,
-      totalXg,
-      xgDiff,
-      dominantTeam,
-      dominantSide,
-      dominantXg,
-      dominantGoals,
-      dominantXgDebt,
-      underdogTeam,
-      underdogXg,
-      underdogGoals,
-      isDevendoGol: false,
-      blockReason: "Dívida quitada: time dominante já converteu todo seu xG e está vencendo",
-      reasoning: "",
-      actionText: "",
-    };
-  }
-
-  // 2. Dominante vencendo por 2+ gols
-  if (gdc.blockIfWinningBy2Plus && dominantGoals - underdogGoals >= 2) {
-    return {
-      qualified: false,
-      minute: curMin,
-      score: scoreStr,
-      totalDebtGoals,
-      ratioUsed: ratio,
-      totalXg,
-      xgDiff,
-      dominantTeam,
-      dominantSide,
-      dominantXg,
-      dominantGoals,
-      dominantXgDebt,
-      underdogTeam,
-      underdogXg,
-      underdogGoals,
-      isDevendoGol: false,
-      blockReason: "Placar elástico: dominante vence com 2+ gols de vantagem",
-      reasoning: "",
-      actionText: "",
-    };
-  }
-
-  // 3. Critérios analíticos mínimos
-  const hasMinDebt = totalDebtGoals >= (gdc.minDebtGoals || 1.0) || (totalXg - totalGoals) >= (gdc.minDebtGoals || 1.0);
-  const hasMinTotalXg = totalXg >= (gdc.minTotalXg || 1.2);
-  const hasMinXgDiffOrDominantDebt = xgDiff >= (gdc.minXgDiff || 0.80) || dominantXgDebt >= (gdc.minDominantDebt || 0.70);
-
-  if (!hasMinDebt || !hasMinTotalXg || !hasMinXgDiffOrDominantDebt) {
-    const reasons: string[] = [];
-    if (!hasMinDebt) reasons.push(`Dívida insuficiente (${totalDebtGoals} < ${gdc.minDebtGoals})`);
-    if (!hasMinTotalXg) reasons.push(`xG total baixo (${totalXg} < ${gdc.minTotalXg})`);
-    if (!hasMinXgDiffOrDominantDebt) reasons.push(`Assimetria insuficiente (dif xG ${xgDiff} < ${gdc.minXgDiff})`);
-    return {
-      qualified: false,
-      minute: curMin,
-      score: scoreStr,
-      totalDebtGoals,
-      ratioUsed: ratio,
-      totalXg,
-      xgDiff,
-      dominantTeam,
-      dominantSide,
-      dominantXg,
-      dominantGoals,
-      dominantXgDebt,
-      underdogTeam,
-      underdogXg,
-      underdogGoals,
-      isDevendoGol,
-      blockReason: reasons.join("; "),
-      reasoning: "",
-      actionText: "",
-    };
-  }
-
-  const prob = Math.min(92, Math.max(70, 72 + Math.round(totalDebtGoals * 8) + (xgDiff >= 1.2 ? 6 : 0)));
-  const reasoning = `Dívida de ${totalDebtGoals} gol(s) acumulada aos ${curMin}'. Volume de ${totalXg} xG gerado para placar de ${scoreStr}. ${dominantTeam} com xG ${dominantXg.toFixed(2)} vs ${underdogXg.toFixed(2)} de ${underdogTeam} (dívida unilateral: ${dominantXgDebt.toFixed(2)}).`;
-  const actionText = `Entrada em Over Gols ou Back ${dominantTeam} recomendada pela Dívida Clássica.`;
-
-  const bettingTip = generateBettingTip({
-    marketCode: "GOAL_DEBT_CLASSIC",
-    marketName: "Dívida de Gols & Diagnóstico Clássico",
-    targetSelection: dominantGoals <= underdogGoals ? `Back ${dominantTeam} / Over` : "Over Próximo Gol",
-    probabilityPct: prob,
-    confidence: prob >= 82 ? 'extrema' : 'alta',
-    reasoning,
-    actionText,
-    match,
-    config,
-  });
-
-  return {
-    qualified: true,
-    minute: curMin,
-    score: scoreStr,
-    totalDebtGoals,
-    ratioUsed: ratio,
-    totalXg,
-    xgDiff,
-    dominantTeam,
-    dominantSide,
-    dominantXg,
-    dominantGoals,
-    dominantXgDebt,
-    underdogTeam,
-    underdogXg,
-    underdogGoals,
-    isDevendoGol: true,
-    reasoning,
-    actionText,
-    bettingTip,
-  };
-}
 
 // ──────────────────────────────────────────────────────────────────────────
 // 4.2. SINAL DE VALOR HT (1º TEMPO 30'-45')

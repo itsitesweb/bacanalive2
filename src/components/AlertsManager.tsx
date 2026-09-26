@@ -87,7 +87,7 @@ export function AlertsManager({
 }: AlertsManagerProps) {
   const [activeSubTab, setActiveSubTab] = useState<"logs" | "rules" | "trend_config">("logs");
   const [typeFilter, setTypeFilter] = useState<
-    "all" | "goal" | "trend" | "imminent" | "triple_debt" | "goal_debt" | "super_back" | "btts" | "corners"
+    "all" | "goal" | "trend" | "imminent" | "goal_debt" | "super_back" | "btts" | "corners"
   >("all");
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const [searchLog, setSearchLog] = useState("");
@@ -253,24 +253,21 @@ export function AlertsManager({
             l.message.toLowerCase().includes("gol iminente") ||
             l.message.toLowerCase().includes("surto ofensivo");
 
-          // 3. Trinca de Dívidas (CC + xG + xGOT Confluentes)
-          const isTripleDebt =
-            l.category === "triple_debt" ||
-            l.ruleId === "rule-trinca-de-dividas" ||
-            l.ruleId.includes("trinca") ||
-            l.ruleName.toLowerCase().includes("trinca de dívidas") ||
-            l.message.toLowerCase().includes("trinca de dívidas");
-
-          // 4. Diagnóstico / Dívida de Gols (Código 3:1)
+          // 3. Diagnóstico / Dívida de Gols (Código 3:1 & Trinca)
           const isGoalDebt =
             l.category === "codigo_31" ||
+            l.category === "triple_debt" ||
             l.ruleId === "rule-diagnostico-classico" ||
+            l.ruleId === "rule-trinca-de-dividas" ||
             l.ruleId.includes("c31") ||
             l.ruleId.includes("diagnostico") ||
-            (l.category === "goal_debt" && !l.ruleId.includes("trinca")) ||
-            (l.ruleName.toLowerCase().includes("diagnóstico") && !l.ruleName.toLowerCase().includes("trinca")) ||
-            (l.ruleName.toLowerCase().includes("dívida de gols") && !l.ruleName.toLowerCase().includes("trinca")) ||
-            (l.message.toLowerCase().includes("diagnóstico clássico") && !l.message.toLowerCase().includes("trinca"));
+            l.ruleId.includes("trinca") ||
+            l.category === "goal_debt" ||
+            l.ruleName.toLowerCase().includes("diagnóstico") ||
+            l.ruleName.toLowerCase().includes("trinca") ||
+            l.ruleName.toLowerCase().includes("dívida de gols") ||
+            l.message.toLowerCase().includes("diagnóstico clássico") ||
+            l.message.toLowerCase().includes("trinca de dívidas");
 
           // 5. Super Back Dominante (Reação Confirmada & Pressão Vendável)
           const isSuperBack =
@@ -754,11 +751,10 @@ export function AlertsManager({
                 <option value="goal">⚽ GOL (Gols Marcados)</option>
                 <option value="imminent">🚨 1. Gol Iminente (Surto 5m)</option>
                 <option value="trend">📈 2. Trend Alert / Super Pressão</option>
-                <option value="triple_debt">💎 3. Trinca de Dívidas</option>
-                <option value="goal_debt">📊 4. Diagnóstico (Código 3:1)</option>
-                <option value="super_back">🎯 5. Super Back / Back Dominante</option>
-                <option value="btts">⚽ 6. Ambas Marcam (BTTS)</option>
-                <option value="corners">🚩 7. Cantos / Blitz de Escanteios</option>
+                <option value="goal_debt">📊 3. Diagnóstico & Dívida de Gols</option>
+                <option value="super_back">🎯 4. Super Back / Back Dominante</option>
+                <option value="btts">⚽ 5. Ambas Marcam (BTTS)</option>
+                <option value="corners">🚩 6. Cantos / Blitz de Escanteios</option>
               </select>
 
               {/* Sort Order Filter */}

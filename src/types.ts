@@ -460,8 +460,6 @@ export interface OperationalRulesConfig {
   
   // Regras de Gols & Back
   enableCodigo31: boolean;
-  enableTripleDebt: boolean;
-  tripleDebtConfig?: TripleDebtConfig; // Configurações editáveis da Trinca de Dívidas (Regra 2)
   enablePressaoVendavel: boolean;
   pressaoVendavelConfig?: PressaoVendavelConfig; // Configurações editáveis da Regra 3 (Pressão Vendável / Ineficiência / Back Favorito)
   enableDominantTrailing: boolean;
@@ -663,28 +661,6 @@ export const DEFAULT_PRESSAO_VENDAVEL_CONFIG: PressaoVendavelConfig = {
   maxDeficitGoals: 1,
 };
 
-// Configuração Editável da Regra 2 (Trinca de Dívidas: CC + xG + xGOT Confluentes)
-export interface TripleDebtConfig {
-  enabled: boolean;
-  minMinute: number; // Padrão: 15'
-  debtMarginXG: number; // Padrão: 1.0 (Margem de dívida em relação aos gols marcados)
-  chancesPerGoalRatio: number; // Padrão: 3.0 (3 chances claras por gol esperado)
-  minUnilateralCc: number; // Padrão: 3 (CC mínima unilateral)
-  minBilateralCc: number; // Padrão: 3 (CC mínima combinada bilateral)
-  minBilateralXg: number; // Padrão: 1.0 (xG mínimo bilateral)
-  minBilateralXgot: number; // Padrão: 1.0 (xGOT mínimo bilateral)
-}
-
-export const DEFAULT_TRIPLE_DEBT_CONFIG: TripleDebtConfig = {
-  enabled: true,
-  minMinute: 10,
-  debtMarginXG: 1.5,
-  chancesPerGoalRatio: 2.5,
-  minUnilateralCc: 3,
-  minBilateralCc: 4,
-  minBilateralXg: 1.0,
-  minBilateralXgot: 1.0,
-};
 
 export interface DominantTrailingConfig {
   enabled: boolean;
@@ -816,35 +792,35 @@ export interface SuperBackDominanteEvaluation {
   convictionLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'MAX';
 }
 
-export interface GoalDebtClassicConfig {
-  enabled: boolean; // Padrão: true
-  minDebtGoals: number; // Padrão: 1.0 (Dívida mínima de gols calculada)
-  minMinute: number; // Padrão: 20' (Minuto inicial de validação)
-  maxMinute: number; // Padrão: 85' (Minuto final de validação)
-  minTotalXg: number; // Padrão: 1.2 (xG total acumulado)
-  minXgDiff: number; // Padrão: 0.80 (Diferença de xG entre dominante e zebra)
-  minDominantDebt: number; // Padrão: 0.70 (Dívida unilateral de xG do dominante)
-  chancesPerGoalRatio: number; // Padrão: 3.0 (Chances Claras necessárias para 1 gol)
-  blockIfWinningBy2Plus: boolean; // Padrão: true (Não alertar se dominante vence por 2+ gols)
-  blockIfDebtPaid: boolean; // Padrão: true (Não alertar se dominante já marcou >= xG)
-  cooldownSecondsAfterGoal?: number; // Legado: 180s (3 minutos)
-  postGoalCooldownMinutes?: number; // Unificado: Padrão 3 minutos de resguardo após qualquer gol
+export interface DebtGoalsConfig {
+  enabled?: boolean;
+  radarSensitivity?: number;   // Parâmetro Central do Radar (Padrão: 1.0)
+  minXgDebt?: number;          // Padrão Base: 0.85 (Multiplicado pela Sensibilidade)
+  minCcDominant?: number;      // Padrão Base: 2 (Multiplicado pela Sensibilidade)
+  minMinute?: number;          // Padrão: 20
+  maxMinute1T?: number;        // Padrão: 38
+  maxMinute2T?: number;        // Padrão: 82
+  cooldownMinutes?: number;    // Padrão: 3 min
+  postGoalCooldownMinutes?: number;
 }
 
-export const DEFAULT_GOAL_DEBT_CLASSIC_CONFIG: GoalDebtClassicConfig = {
+export const DEFAULT_DEBT_GOALS_CONFIG: DebtGoalsConfig = {
   enabled: true,
-  minDebtGoals: 1.5,
+  radarSensitivity: 1.0,
+  minXgDebt: 0.85,
+  minCcDominant: 2,
   minMinute: 20,
-  maxMinute: 85,
-  minTotalXg: 2.0,
-  minXgDiff: 0.80,
-  minDominantDebt: 0.70,
-  chancesPerGoalRatio: 2.5,
-  blockIfWinningBy2Plus: true,
-  blockIfDebtPaid: true,
-  cooldownSecondsAfterGoal: 180,
+  maxMinute1T: 38,
+  maxMinute2T: 82,
+  cooldownMinutes: 3,
   postGoalCooldownMinutes: 3,
 };
+
+// Alias para compatibilidade com código legado
+export type GoalDebtClassicConfig = DebtGoalsConfig;
+export const DEFAULT_GOAL_DEBT_CLASSIC_CONFIG = DEFAULT_DEBT_GOALS_CONFIG;
+export type TripleDebtConfig = DebtGoalsConfig;
+export const DEFAULT_TRIPLE_DEBT_CONFIG = DEFAULT_DEBT_GOALS_CONFIG;
 
 export interface GoalDebtClassicEvaluation {
   qualified: boolean;
@@ -1089,8 +1065,6 @@ export const DEFAULT_MODAL_CONFIG: OperationalRulesConfig = {
   ccRateForteMaxMinutes: 12.0,
   debtMarginXG: 1.5,
   enableCodigo31: false,
-  enableTripleDebt: true,
-  tripleDebtConfig: DEFAULT_TRIPLE_DEBT_CONFIG,
   enablePressaoVendavel: true,
   pressaoVendavelConfig: DEFAULT_PRESSAO_VENDAVEL_CONFIG,
   enableDominantTrailing: true,

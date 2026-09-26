@@ -70,7 +70,7 @@ export const DEFAULT_LOCAL_ALERT_RULES: AlertRule[] = [
   {
     id: "rule-diagnostico-classico",
     name: "⚡ Diagnóstico Clássico: Dívida de Gols & Divergência de xG",
-    description: "Alerta unificado de dívida de gols e assimetria estatística. Detecta quando o volume acumulado de chances claras ou xG supera o placar real (dívida de gols para Over), ou quando há ampla divergência de xG entre as equipes (>1.0) com atraso de conversão no placar.",
+    description: "Alerta unificado de dívida de gols (descontando o placar real) e confluência de xGOT e CC (Trinca). Detecta quando a dívida líquida de xG e volume de chances claras superam os limiares com travas estreitas de placar.",
     matchId: "all",
     enabled: true,
     logic: "AND",
@@ -82,24 +82,7 @@ export const DEFAULT_LOCAL_ALERT_RULES: AlertRule[] = [
     severity: "opportunity",
     soundEnabled: true,
     browserNotification: true,
-    messageTemplate: "⚡ DIAGNÓSTICO CLÁSSICO: Dívida de {debtGoals} gol(s) aos {minute}'! {dominantTeam} ({higherXg} xG) x ({lowerXg} xG) {underdogTeam} (dif. +{xgDiff}, total {totalXg} xG) para placar {score}. Probabilidade elevada de GOL/OVER.",
-    triggerCount: 0,
-  },
-  {
-    id: "rule-trinca-de-dividas",
-    name: "💎 Trinca de Dívidas: CC + xG + xGOT Confluentes",
-    description: "Alerta transferido do Terminal Python (Regra 2). Confluência matemática perfeita: Chances Claras atrasadas, saldo de xG não convertido e xGOT no alvo acumulado acima do placar real.",
-    matchId: "all",
-    enabled: true,
-    logic: "AND",
-    conditions: [
-      { metric: "tripleDebtFormed", operator: "==", value: 1 },
-      { metric: "minute", operator: ">=", value: 15 },
-    ],
-    severity: "critical",
-    soundEnabled: true,
-    browserNotification: true,
-    messageTemplate: "💎 TRINCA DE DÍVIDAS ATIVA ({tripleDebtScope}) aos {minute}'! Time devedor: {debtorTeam}. Placar: {score}. CC no escopo: {ccInScope}, xG: {xgInScope}, xGOT: {xgotInScope}. Altíssima probabilidade de gol!",
+    messageTemplate: "⚡ DÍVIDA DE GOLS & TRINCA CRÍTICA: {dominantTeam} acumula Dívida Líquida de xG de {netDebt} ({totalXg} xG - {goals} Gols) e {ccCount} CCs aos {minute}'! Placar: {score}. 🎯 Mercado: {targetMarket} | 👉 Ação: {actionText}",
     triggerCount: 0,
   },
   {
@@ -272,10 +255,6 @@ export class LocalConfigManager {
             pressaoVendavelConfig: {
               ...((parsed.operationalConfig && parsed.operationalConfig.pressaoVendavelConfig) || {}),
               ...defaults.operationalConfig.pressaoVendavelConfig,
-            },
-            tripleDebtConfig: {
-              ...((parsed.operationalConfig && parsed.operationalConfig.tripleDebtConfig) || {}),
-              ...defaults.operationalConfig.tripleDebtConfig,
             },
             dominantTrailingConfig: {
               ...((parsed.operationalConfig && parsed.operationalConfig.dominantTrailingConfig) || {}),
