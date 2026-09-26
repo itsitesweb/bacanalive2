@@ -1101,8 +1101,6 @@ export const DEFAULT_MODAL_CONFIG: OperationalRulesConfig = {
   goalDebtClassicConfig: DEFAULT_GOAL_DEBT_CLASSIC_CONFIG,
   enableHalfTimeValue: true,
   halfTimeValueConfig: DEFAULT_HALFTIME_VALUE_CONFIG,
-  enableV12OverBack: true,
-  v12Config: DEFAULT_V12_CONFIG,
   enableImminentGoal: true,
   imminentGoalConfig: DEFAULT_IMMINENT_GOAL_CONFIG,
   enableTrendAlert: true,
