@@ -165,7 +165,8 @@ export type AlertMetric =
   | 'dominantTrailingConfirmed'
   | 'superBackDominanteQualified'
   | 'ambasMarcamQualified'
-  | 'imminentGoalQualified';
+  | 'imminentGoalQualified'
+  | 'v12OverBackQualified';
 
 export type AlertOperator = '>' | '>=' | '<' | '<=' | '==' | '!=';
 export type AlertSeverity = 'info' | 'warning' | 'opportunity' | 'critical';
@@ -191,6 +192,7 @@ export interface AlertRule {
   messageTemplate: string;
   lastTriggered?: string;
   triggerCount: number;
+  minFrequencyMinutes?: number;
 }
 
 export interface TrendAlertData {
@@ -348,21 +350,21 @@ export interface SuperPressureTrendConfig {
 
 export const DEFAULT_SUPER_PRESSURE_CONFIG: SuperPressureTrendConfig = {
   enabled: true,
-  minAvgPressure: 68,
-  minConsistencyPct: 65,
+  minAvgPressure: 60,
+  minConsistencyPct: 55,
   windowMinutes: 15,
-  minMinute: 20,
-  pointThreshold: 60,
-  minFinalizations: 2,
+  minMinute: 15,
+  pointThreshold: 55,
+  minFinalizations: 1,
   cutoff1T: 38,
   cutoff2T: 82,
   cutoffMinute1T: 38,
   cutoffMinute2T: 82,
-  minShotsInWindow: 2,
-  minTargetOdd1T: 1.60,
-  minTargetOdd2T: 1.70,
-  targetOdd1T: 1.60,
-  targetOdd2T: 1.70,
+  minShotsInWindow: 1,
+  minTargetOdd1T: 1.50,
+  minTargetOdd2T: 1.60,
+  targetOdd1T: 1.50,
+  targetOdd2T: 1.60,
 };
 
 export interface ImminentGoalSurgeConfig {
@@ -372,80 +374,96 @@ export interface ImminentGoalSurgeConfig {
   cutoffMinute1T?: number; // 38
   minMinute2T?: number; // 55
   cutoffMinute2T?: number; // 82
-  minApPerMinute?: number; // 1.6
-  minShotsInWindow?: number; // 2
-  targetOdd?: number; // 1.50
+  minApPerMinute?: number; // 1.2
+  minShotsInWindow?: number; // 1
+  targetOdd?: number; // 1.45
 }
 
 export interface ImminentGoalConfig {
   enabled?: boolean; // Padrão: true
   windowMinutes: number; // Padrão: 5 min (Janela de análise imediata de surto)
-  minAvgPressure: number; // Padrão: 72% (Pressão média contínua da equipe dominante na janela de 5m)
-  minConsistencyPct: number; // Padrão: 60% (Consistência no ataque: % de pontos na janela com pressão >= pointThreshold)
-  pointThreshold: number; // Padrão: 70% (Pressão instantânea mínima em cada minuto para pontuar consistência no surto)
-  minMinute: number; // Padrão: 20 min (Minuto mínimo da partida para disparar no 1T)
-  minMinute2T?: number; // Padrão: 55 min (Minuto mínimo para disparar no 2T)
+  minAvgPressure: number; // Padrão: 62% (Pressão média contínua da equipe dominante na janela de 5m)
+  minConsistencyPct: number; // Padrão: 55% (Consistência no ataque: % de pontos na janela com pressão >= pointThreshold)
+  pointThreshold: number; // Padrão: 60% (Pressão instantânea mínima em cada minuto para pontuar consistência no surto)
+  minMinute: number; // Padrão: 15 min (Minuto mínimo da partida para disparar no 1T)
+  minMinute2T?: number; // Padrão: 50 min (Minuto mínimo para disparar no 2T)
   cutoff1T?: number; // Padrão: 38 min (Corte máximo no 1º Tempo)
   cutoff2T?: number; // Padrão: 82 min (Corte máximo no 2º Tempo)
-  minDangerousAttacks: number; // Padrão: 2 (Ataques perigosos comprovados na janela de 5m)
-  minDangerousAttacksPerMin?: number; // Padrão: 1.6 AP/min
-  minShots: number; // Padrão: 2 (Finalizações na janela de 5m)
-  minTargetOdd?: number; // Padrão: 1.50 (Odd mínima alvo)
-  extremePressureBypass: number; // Padrão: 80% (Se pressão atingir este nível, dispensa exigência de ataques/chutes)
+  minDangerousAttacks: number; // Padrão: 3 (Ataques perigosos comprovados na janela de 5m)
+  minDangerousAttacksPerMin?: number; // Padrão: 1.2 AP/min
+  minShots: number; // Padrão: 1 (Finalizações na janela de 5m)
+  minTargetOdd?: number; // Padrão: 1.45 (Odd mínima alvo)
+  extremePressureBypass: number; // Padrão: 75% (Se pressão atingir este nível, dispensa exigência de ataques/chutes)
 }
 
 export const DEFAULT_IMMINENT_GOAL_CONFIG: ImminentGoalConfig = {
   enabled: true,
   windowMinutes: 5,
-  minAvgPressure: 75,
-  minConsistencyPct: 80,
-  pointThreshold: 70,
-  minMinute: 20,
-  minMinute2T: 55,
+  minAvgPressure: 62,
+  minConsistencyPct: 55,
+  pointThreshold: 60,
+  minMinute: 15,
+  minMinute2T: 50,
   cutoff1T: 38,
   cutoff2T: 82,
-  minDangerousAttacks: 8,
-  minDangerousAttacksPerMin: 1.6,
-  minShots: 2,
-  minTargetOdd: 1.50,
-  extremePressureBypass: 85,
+  minDangerousAttacks: 3,
+  minDangerousAttacksPerMin: 1.2,
+  minShots: 1,
+  minTargetOdd: 1.45,
+  extremePressureBypass: 75,
 };
 
 export interface AmbasMarcamConfig {
-  enabled: boolean;
-  minMinute: number; // Padrão: 18'
-  maxMinute: number; // Padrão: 86'
-  minHomeXg: number; // Padrão: 0.35
-  minAwayXg: number; // Padrão: 0.35
-  minTotalXg: number; // Padrão: 1.10
-  minHomeAttacks10m: number; // Padrão: 3 (ataques perigosos últimos 10m)
-  minAwayAttacks10m: number; // Padrão: 3
-  minHomeShots10m: number; // Padrão: 1
-  minAwayShots10m: number; // Padrão: 1
-  minHomePressure: number; // Padrão: 45%
-  minAwayPressure: number; // Padrão: 45%
-  minCombinedPressure: number; // Padrão: 100%
-  minProbabilityPct: number; // Padrão: 68%
-  blockIfBothScored: boolean; // Padrão: true (Se ambos já marcaram, encerra mercado)
-  blockIfBlowout: boolean; // Padrão: true (Bloqueia goleada >= 3 gols sem reação no final)
-  windowMinutes: number; // Padrão: 10 min
+  enabled?: boolean;
+  minShotsPerTeam?: number;      // Padrão: 3 (Chutes mínimos por equipe)
+  minRecentShotsUnscored?: number; // Padrão: 2 (Chutes recentes do time sem gol)
+  targetOddBtts?: number;        // Padrão: 1.80 (Odd Alvo)
+  minMinute1T?: number;          // Padrão: 25
+  maxMinute1T?: number;          // Padrão: 38
+  minMinute2T?: number;          // Padrão: 50
+  maxMinute2T?: number;          // Padrão: 75
+  cooldownMinutes?: number;      // Padrão: 3 min
+  minMinute?: number;
+  maxMinute?: number;
+  minHomeXg?: number;
+  minAwayXg?: number;
+  minTotalXg?: number;
+  minHomeAttacks10m?: number;
+  minAwayAttacks10m?: number;
+  minHomeShots10m?: number;
+  minAwayShots10m?: number;
+  minHomePressure?: number;
+  minAwayPressure?: number;
+  minCombinedPressure?: number;
+  minProbabilityPct?: number;
+  blockIfBothScored?: boolean;
+  blockIfBlowout?: boolean;
+  windowMinutes?: number;
 }
 
 export const DEFAULT_AMBAS_MARCAM_CONFIG: AmbasMarcamConfig = {
   enabled: true,
-  minMinute: 18,
-  maxMinute: 86,
-  minHomeXg: 0.35,
-  minAwayXg: 0.35,
-  minTotalXg: 1.10,
-  minHomeAttacks10m: 3,
-  minAwayAttacks10m: 3,
+  minShotsPerTeam: 3,
+  minRecentShotsUnscored: 2,
+  targetOddBtts: 1.80,
+  minMinute1T: 25,
+  maxMinute1T: 38,
+  minMinute2T: 50,
+  maxMinute2T: 75,
+  cooldownMinutes: 3,
+  minMinute: 25,
+  maxMinute: 75,
+  minHomeXg: 0.30,
+  minAwayXg: 0.30,
+  minTotalXg: 1.00,
+  minHomeAttacks10m: 2,
+  minAwayAttacks10m: 2,
   minHomeShots10m: 1,
   minAwayShots10m: 1,
-  minHomePressure: 45,
-  minAwayPressure: 45,
-  minCombinedPressure: 100,
-  minProbabilityPct: 68,
+  minHomePressure: 40,
+  minAwayPressure: 40,
+  minCombinedPressure: 80,
+  minProbabilityPct: 65,
   blockIfBothScored: true,
   blockIfBlowout: true,
   windowMinutes: 10,
@@ -472,6 +490,10 @@ export interface OperationalRulesConfig {
   halfTimeValueConfig?: HalfTimeValueConfig; // Configurações editáveis do Sinal de Valor HT
   enableImminentGoal: boolean; // Alerta de Gol Iminente (Surto 5m)
   imminentGoalConfig?: ImminentGoalConfig; // Configuração unificada e editável de Gol Iminente / Surto Ofensivo (Regra 7)
+  enableV12OverBack?: boolean;
+  enableTripleDebt?: boolean;
+  tripleDebtConfig?: any;
+  v12Config?: any;
 
   // ESTRATÉGIAS DE ANÁLISE TÁTICA E PRESSÃO
   enableTrendAlert?: boolean; // Trend Alert: Pressão Alta Constante no Longo Prazo (momentumTimeline)
@@ -735,6 +757,12 @@ export interface SuperBackDominanteConfig {
   maxOpponentApPerMinute?: number;
   maxGoalDeficit?: number;
   postGoalCooldownMinutes?: number;
+  // Aliases for editor compatibility
+  minXg?: number;
+  minCc?: number;
+  maxOppXg?: number;
+  minPressure?: number;
+  minDangerousAttacksLast10?: number;
 }
 
 export const DEFAULT_SUPER_BACK_DOMINANTE_CONFIG: SuperBackDominanteConfig = {
@@ -802,6 +830,21 @@ export interface DebtGoalsConfig {
   maxMinute2T?: number;        // Padrão: 82
   cooldownMinutes?: number;    // Padrão: 3 min
   postGoalCooldownMinutes?: number;
+  minDebtGoals?: number;
+  minTotalXg?: number;
+  minXgDiff?: number;
+  minDominantDebt?: number;
+  chancesPerGoalRatio?: number;
+  tripleDebtConfig?: any;
+  cooldownSecondsAfterGoal?: number;
+  debtMarginXG?: number;
+  minUnilateralCc?: number;
+  minBilateralCc?: number;
+  minBilateralXg?: number;
+  minBilateralXgot?: number;
+  maxMinute?: number;
+  blockIfWinningBy2Plus?: boolean;
+  blockIfDebtPaid?: boolean;
 }
 
 export const DEFAULT_DEBT_GOALS_CONFIG: DebtGoalsConfig = {
@@ -843,6 +886,7 @@ export interface GoalDebtClassicEvaluation {
   reasoning: string;
   actionText: string;
   bettingTip?: BettingTipData;
+  isTripleDebt?: boolean;
 }
 
 export interface HalfTimeValueConfig {
@@ -1014,7 +1058,7 @@ export interface MatchRulesAnalysis {
   trendAlert?: TrendAlertEvaluation;
   pressaoCantosBlitz?: PressaoCantosBlitzEvaluation;
   ambasMarcam?: AmbasMarcamEvaluation;
-  traditionalSignals: TraditionalRuleSignal[];
+  traditionalSignals?: TraditionalRuleSignal[];
   hasActiveOperationalAlert: boolean;
   primaryAlertBadge?: {
     emoji: string;

@@ -87,7 +87,7 @@ export function AlertsManager({
 }: AlertsManagerProps) {
   const [activeSubTab, setActiveSubTab] = useState<"logs" | "rules" | "trend_config">("logs");
   const [typeFilter, setTypeFilter] = useState<
-    "all" | "goal" | "trend" | "imminent" | "goal_debt" | "super_back" | "btts" | "corners"
+    "all" | "goal" | "trend" | "imminent" | "goal_debt" | "super_back" | "btts" | "ambas_marcam" | "corners" | "triple_debt"
   >("all");
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const [searchLog, setSearchLog] = useState("");
@@ -283,10 +283,13 @@ export function AlertsManager({
           // 6. Ambas Marcam (BTTS: Sim)
           const isBtts =
             l.category === "btts" ||
+            l.category === "ambas_marcam" ||
             l.ruleId.includes("btts") ||
+            l.ruleId.includes("ambas_marcam") ||
             l.ruleId.includes("ambas") ||
             l.ruleName.toLowerCase().includes("ambas") ||
-            l.ruleName.toLowerCase().includes("btts");
+            l.ruleName.toLowerCase().includes("btts") ||
+            l.message.toLowerCase().includes("btts confirmado");
 
           // 7. Cantos / Blitz de Escanteios
           const isCorners =
@@ -298,6 +301,8 @@ export function AlertsManager({
             l.ruleName.toLowerCase().includes("escanteios") ||
             l.message.toLowerCase().includes("cantos");
 
+          const isTripleDebt = isGoalDebt;
+
           if (typeFilter === "goal" && !isGoal) return false;
           if (typeFilter === "trend" && !isTrend) return false;
           if (typeFilter === "imminent" && !isImminent) return false;
@@ -305,6 +310,7 @@ export function AlertsManager({
           if (typeFilter === "goal_debt" && !isGoalDebt) return false;
           if (typeFilter === "super_back" && !isSuperBack) return false;
           if (typeFilter === "btts" && !isBtts) return false;
+          if (typeFilter === "ambas_marcam" && !isBtts) return false;
           if (typeFilter === "corners" && !isCorners) return false;
         }
 
@@ -754,6 +760,7 @@ export function AlertsManager({
                 <option value="goal_debt">📊 3. Diagnóstico & Dívida de Gols</option>
                 <option value="super_back">🎯 4. Super Back / Back Dominante</option>
                 <option value="btts">⚽ 5. Ambas Marcam (BTTS)</option>
+                <option value="ambas_marcam">⚽ Ambas Marcam (BTTS)</option>
                 <option value="corners">🚩 6. Cantos / Blitz de Escanteios</option>
               </select>
 

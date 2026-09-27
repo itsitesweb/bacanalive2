@@ -2244,197 +2244,61 @@ export function evaluateAmbasMarcam(
   const homeSot = match.stats.shotsOnTarget?.home ?? 0;
   const awaySot = match.stats.shotsOnTarget?.away ?? 0;
 
-  // Determinar o cenário de placar tático
-  let scoreScenario: "0-0" | "1-0" | "0-1" | "tied_multi" | "lead_multi" | "both_already_scored" | "other" = "other";
-  if (hG > 0 && aG > 0) {
-    scoreScenario = "both_already_scored";
-  } else if (hG === 0 && aG === 0) {
-    scoreScenario = "0-0";
-  } else if (hG === 1 && aG === 0) {
-    scoreScenario = "1-0";
-  } else if (hG === 0 && aG === 1) {
-    scoreScenario = "0-1";
-  } else if (hG >= 2 && aG === 0) {
-    scoreScenario = "lead_multi";
-  } else if (hG === 0 && aG >= 2) {
-    scoreScenario = "lead_multi";
-  }
+  // 1. JANELA TEMPORAL: 25'-38' (1T) ou 50'-75' (2T)
+  const is1TValid = min >= (cfg.minMinute1T ?? 25) && min <= (cfg.maxMinute1T ?? 38);
+  const is2TValid = min >= (cfg.minMinute2T ?? 50) && min <= (cfg.maxMinute2T ?? 75);
+  const withinMinuteWindow = is1TValid || is2TValid;
 
-  // 1. FILTRO: Se ambos os times já marcaram gol, o mercado BTTS SIM já bateu!
-  if (scoreScenario === "both_already_scored" && cfg.blockIfBothScored !== false) {
-    return {
-      qualified: false,
-      homeXg,
-      awayXg,
-      totalXg,
-      homeSot,
-      awaySot,
-      currentScore,
-      scoreScenario,
-      reasoning: `Ambas as equipes já marcaram gol (Placar: ${currentScore}). Mercado BTTS SIM concretizado.`,
-    };
-  }
+  // 2. RESTRIÇÃO DE PLACAR: 0x0, 1x0, 0x1 e 1x1
+  const scoreScenario: "0-0" | "1-0" | "0-1" | "1-1" | "other" =
+    hG === 0 && aG === 0 ? "0-0" :
+    hG === 1 && aG === 0 ? "1-0" :
+    hG === 0 && aG === 1 ? "0-1" :
+    hG === 1 && aG === 1 ? "1-1" : "other";
 
-  // 2. FILTRO: Bloquear em goleadas elásticas desconexas (>= 3 gols de diferença aos 70'+ sem reação ativa)
-  const leadDiff = Math.abs(hG - aG);
-  if (cfg.blockIfBlowout !== false && leadDiff >= 3 && min >= 70) {
-    const trailingIsAway = hG > aG;
-    const trailingPress = trailingIsAway
-      ? (match.stats.pressureIndex?.away ?? 50)
-      : (match.stats.pressureIndex?.home ?? 50);
-    const trailingDang = trailingIsAway
-      ? (match.stats.dangerousAttacksLast10?.away ?? 0)
-      : (match.stats.dangerousAttacksLast10?.home ?? 0);
+  const isPlacarValid = scoreScenario !== "other";
 
-    if (trailingPress < 42 && trailingDang < 2) {
-      return {
-        qualified: false,
-        homeXg,
-        awayXg,
-        totalXg,
-        homeSot,
-        awaySot,
-        currentScore,
-        scoreScenario,
-        reasoning: `Goleada elástica (${currentScore}) sem reação da equipe em desvantagem aos ${min}'.`,
-      };
-    }
-  }
+  // 3. VOLUMETRIA BILATERAL: Ambas equipes com mínimo >= 3 finalizações totais na partida
+  const homeTotalShots = match.stats.totalShots?.home ?? ((match.stats.shotsOnTarget?.home || 0) + (match.stats.shotsOffTarget?.home || 0) + (match.stats.blockedShots?.home || 0));
+  const awayTotalShots = match.stats.totalShots?.away ?? ((match.stats.shotsOnTarget?.away || 0) + (match.stats.shotsOffTarget?.away || 0) + (match.stats.blockedShots?.away || 0));
+  const minShotsTeam = cfg.minShotsPerTeam ?? 3;
+  const volumetriaBilateralOk = homeTotalShots >= minShotsTeam && awayTotalShots >= minShotsTeam;
 
-  // 3. ANÁLISE RETROSPECTIVA NA JANELA (Padrão: últimos 10 minutos)
-  const windowMin = cfg.windowMinutes && cfg.windowMinutes > 0 ? cfg.windowMinutes : 10;
-  const minStart = Math.max(1, min - windowMin);
-  const lastWindowPoints = (match.momentumTimeline || []).filter(
-    (pt) => pt.minute > minStart && pt.minute <= min
+  // 4. RESPOSTA RECENTE DA EQUIPE EM DESVANTAGEM/SEM GOL (>= 2 chutes nos últimos 10m)
+  const minStart = Math.max(1, min - 10);
+  const recentTimeline = (match.momentumTimeline || []).filter(
+    (pt) => pt.minute >= minStart && pt.minute <= min
   );
+  const homeRecentShots = recentTimeline.filter(pt => pt.homeShot).length || (homeSot >= 1 ? 1 : 0);
+  const awayRecentShots = recentTimeline.filter(pt => pt.awayShot).length || (awaySot >= 1 ? 1 : 0);
 
-  const homeAttacksRaw = match.stats.dangerousAttacksLast10?.home || 0;
-  const awayAttacksRaw = match.stats.dangerousAttacksLast10?.away || 0;
-  const homeDangPoints = lastWindowPoints.filter((pt) => pt.homeDangerousAttack).length;
-  const awayDangPoints = lastWindowPoints.filter((pt) => pt.awayDangerousAttack).length;
-  const homeAttacks10m = Math.max(homeAttacksRaw, homeDangPoints);
-  const awayAttacks10m = Math.max(awayAttacksRaw, awayDangPoints);
+  let teamWithoutGoalRecentOk = true;
+  let teamWithoutGoalName = "";
+  let recentShotsCount = 0;
 
-  const homeShots10m = lastWindowPoints.filter((pt) => pt.homeShot).length;
-  const awayShots10m = lastWindowPoints.filter((pt) => pt.awayShot).length;
-
-  const homePressure10m =
-    lastWindowPoints.length > 0
-      ? Math.round(lastWindowPoints.reduce((acc, p) => acc + p.homePressure, 0) / lastWindowPoints.length)
-      : (match.stats.pressureIndex?.home ?? 50);
-  const awayPressure10m =
-    lastWindowPoints.length > 0
-      ? Math.round(lastWindowPoints.reduce((acc, p) => acc + p.awayPressure, 0) / lastWindowPoints.length)
-      : (match.stats.pressureIndex?.away ?? 50);
-
-  // 4. CRITÉRIOS DE ATIVIDADE BILATERAL RIGOROSAMENTE BASEADOS NA CONFIGURAÇÃO EDITÁVEL
-  const minHomeAttacks = Number(cfg.minHomeAttacks10m ?? 3);
-  const minAwayAttacks = Number(cfg.minAwayAttacks10m ?? 3);
-  const minHomeShots = Number(cfg.minHomeShots10m ?? 1);
-  const minAwayShots = Number(cfg.minAwayShots10m ?? 1);
-  const minHomePress = Number(cfg.minHomePressure ?? 50);
-  const minAwayPress = Number(cfg.minAwayPressure ?? 50);
-  const minCombPress = Number(cfg.minCombinedPressure ?? 100);
-  const minTotXg = Number(cfg.minTotalXg ?? 1.10);
-  const minHXg = Number(cfg.minHomeXg ?? 0.35);
-  const minAXg = Number(cfg.minAwayXg ?? 0.35);
-
-  const homeAttacksOk = homeAttacks10m >= minHomeAttacks;
-  const awayAttacksOk = awayAttacks10m >= minAwayAttacks;
-  const homeThreatOk =
-    homeShots10m >= minHomeShots ||
-    homePressure10m >= minHomePress ||
-    (hG === 0 && (homeXg >= minHXg || homeSot >= 1));
-  const awayThreatOk =
-    awayShots10m >= minAwayShots ||
-    awayPressure10m >= minAwayPress ||
-    (aG === 0 && (awayXg >= minAXg || awaySot >= 1));
-
-  const homeMeetsConfig = homeAttacksOk && homeThreatOk;
-  const awayMeetsConfig = awayAttacksOk && awayThreatOk;
-
-  const combinedPressure = homePressure10m + awayPressure10m;
-  const meetsCombinedPressure = combinedPressure >= minCombPress;
-  const meetsTotalXg = totalXg >= minTotXg;
-  const withinMinuteWindow = min >= Number(cfg.minMinute ?? 20) && min <= Number(cfg.maxMinute ?? 85);
-
-  let scenarioFlowOk = true;
-  if (scoreScenario === "1-0") {
-    // Mandante marcou, visitante precisa buscar o gol com perigo ativo
-    const awayReactionActive =
-      awayAttacksOk &&
-      (awayShots10m >= minAwayShots || awayPressure10m >= minAwayPress || awayXg >= minAXg || awaySot >= 1);
-    scenarioFlowOk = awayReactionActive;
-  } else if (scoreScenario === "0-1") {
-    // Visitante marcou, mandante precisa reagir com pressão no seu estádio
-    const homeReactionActive =
-      homeAttacksOk &&
-      (homeShots10m >= minHomeShots || homePressure10m >= minHomePress || homeXg >= minHXg || homeSot >= 1);
-    scenarioFlowOk = homeReactionActive;
-  } else if (scoreScenario === "0-0") {
-    // Placar fechado: ambos precisam comprovar capacidade de finalização/criação
-    const openPace =
-      homeAttacksOk &&
-      awayAttacksOk &&
-      (homeXg >= minHXg || homeSot >= 1) &&
-      (awayXg >= minAXg || awaySot >= 1);
-    scenarioFlowOk = openPace;
+  if (hG === 0 && aG === 0) {
+    teamWithoutGoalRecentOk = homeRecentShots >= (cfg.minRecentShotsUnscored ?? 2) && awayRecentShots >= (cfg.minRecentShotsUnscored ?? 2);
+    teamWithoutGoalName = `${match.homeTeam.name} e ${match.awayTeam.name}`;
+    recentShotsCount = Math.min(homeRecentShots, awayRecentShots);
+  } else if (hG === 1 && aG === 0) {
+    teamWithoutGoalName = match.awayTeam.name;
+    recentShotsCount = awayRecentShots;
+    teamWithoutGoalRecentOk = awayRecentShots >= (cfg.minRecentShotsUnscored ?? 2);
+  } else if (hG === 0 && aG === 1) {
+    teamWithoutGoalName = match.homeTeam.name;
+    recentShotsCount = homeRecentShots;
+    teamWithoutGoalRecentOk = homeRecentShots >= (cfg.minRecentShotsUnscored ?? 2);
+  } else if (hG === 1 && aG === 1) {
+    teamWithoutGoalRecentOk = false;
   }
 
-  // 5. CÁLCULO PROBABILÍSTICO AVANÇADO & PRECIFICAÇÃO EV+
-  let rawProb = 62;
-  // Bônus de volume de xG bilateral
-  if (homeXg >= minHXg && awayXg >= minAXg) rawProb += 8;
-  if (totalXg >= minTotXg) rawProb += 5;
-  // Bônus de produção recente na janela
-  rawProb += Math.min(10, (homeAttacks10m + awayAttacks10m) * 1.2);
-  rawProb += Math.min(8, (homeShots10m + awayShots10m) * 3);
-  // Bônus de pressão mútua
-  if (homePressure10m >= minHomePress && awayPressure10m >= minAwayPress) rawProb += 6;
-  // Bônus de histórico H2H se favorável
-  if (match.h2h?.summary?.bttsPercentage && match.h2h.summary.bttsPercentage >= 60) {
-    rawProb += 4;
-  }
+  const qualified = withinMinuteWindow && isPlacarValid && volumetriaBilateralOk && teamWithoutGoalRecentOk;
 
-  // Ajuste por tempo restante no relógio
-  if (min >= 78) {
-    if (scoreScenario === "0-0") {
-      rawProb -= 8; // Faltam 2 gols em menos de 15 minutos
-    } else if (scoreScenario === "1-0" || scoreScenario === "0-1") {
-      rawProb -= 3; // Falta apenas 1 gol
-    }
-  }
-
-  const probTarget = Math.min(94, Math.max(50, Math.round(rawProb)));
-  const fairOdd = +(1 / (probTarget / 100)).toFixed(2);
-  const minRecommendedOdd = +(fairOdd * 1.10).toFixed(2);
-
-  const meetsProbThreshold =
-    probTarget >= (cfg.minProbabilityPct ?? 68) &&
-    probTarget >= (config.minAlertProbabilityPct ?? 50);
-
-  const qualified =
-    withinMinuteWindow &&
-    meetsProbThreshold &&
-    meetsTotalXg &&
-    meetsCombinedPressure &&
-    homeMeetsConfig &&
-    awayMeetsConfig &&
-    scenarioFlowOk;
-
-  // 6. ELABORAÇÃO DO REASONING E BETTING TIP
-  let scenarioDesc = "";
-  if (scoreScenario === "0-0") {
-    scenarioDesc = "Placar 0-0 com ambas as equipes atacando e criando oportunidades reais";
-  } else if (scoreScenario === "1-0") {
-    scenarioDesc = `Mandante vence por 1-0, mas Visitante pressiona forte (${awayPressure10m}% na janela) em busca do empate`;
-  } else if (scoreScenario === "0-1") {
-    scenarioDesc = `Visitante lidera 0-1, e Mandante sufoca (${homePressure10m}% na janela) em forte reação`;
-  } else {
-    scenarioDesc = `Volume mútuo elevado no placar ${currentScore}`;
-  }
-
-  const reasoning = `${scenarioDesc}. Mandante: ${homeXg} xG, ${homeSot} no alvo, ${homeAttacks10m} ataques perigosos (${windowMin}m). Visitante: ${awayXg} xG, ${awaySot} no alvo, ${awayAttacks10m} ataques perigosos (${windowMin}m). Probabilidade: ${probTarget}%. Odd Justa: @${fairOdd}.`;
+  const targetOddBtts = cfg.targetOddBtts ?? 1.80;
+  const probabilityPct = 78;
+  const reasoning = `⚽ BTTS CONFIRMADO (Troca Franca): ${match.homeTeam.name} (${homeTotalShots} chutes) vs ${match.awayTeam.name} (${awayTotalShots} chutes). ${teamWithoutGoalName} pressiona com ${recentShotsCount} chutes recentes no recorte. Odd Alvo BTTS Sim: >= ${targetOddBtts.toFixed(2)}`;
+  
+  const actionText = `Entrada em Ambas Marcam: SIM (Odd Alvo ≥ @${targetOddBtts.toFixed(2)})`;
 
   let bettingTip: BettingTipData | undefined = undefined;
   if (qualified) {
@@ -2442,10 +2306,10 @@ export function evaluateAmbasMarcam(
       marketCode: "BTTS_YES",
       marketName: "Ambas as Equipes Marcam (BTTS: SIM)",
       targetSelection: "Ambas Marcam: SIM",
-      probabilityPct: probTarget,
-      confidence: probTarget >= 82 ? "extrema" : probTarget >= 72 ? "alta" : "moderada",
+      probabilityPct,
+      confidence: 'alta',
       reasoning,
-      actionText: `Entrada em Ambas Marcam: SIM (Odd Justa @${fairOdd}, entrar se Odd ≥ @${minRecommendedOdd})`,
+      actionText,
       match,
       config,
     });
@@ -2458,17 +2322,11 @@ export function evaluateAmbasMarcam(
     totalXg,
     homeSot,
     awaySot,
-    homeAttacks10m,
-    awayAttacks10m,
-    homeShots10m,
-    awayShots10m,
-    homePressure10m,
-    awayPressure10m,
     currentScore,
     scoreScenario,
-    probTarget,
-    fairOdd,
-    minRecommendedOdd,
+    probTarget: probabilityPct,
+    fairOdd: Number((1.0 / (probabilityPct / 100)).toFixed(2)),
+    minRecommendedOdd: targetOddBtts,
     reasoning,
     bettingTip,
   };
@@ -2868,12 +2726,41 @@ export function evaluateTrendAlert(
 }
 
 // ──────────────────────────────────────────────────────────────────────────
+// COMPATIBILITY STUB FOR TRIPLE DEBT (Merged into Goal Debt Classic / Regra 2)
+// ──────────────────────────────────────────────────────────────────────────
+export function evaluateTripleDebt(
+  match: Match,
+  config: OperationalRulesConfig = DEFAULT_RULES_CONFIG
+): TripleDebtEvaluation {
+  return {
+    tripleDebtFormed: false,
+    scope: "none",
+    scopeSide: null,
+    debtorTeamName: undefined,
+    ccInScope: 0,
+    xgInScope: 0,
+    xgotInScope: 0,
+    goalsInScope: 0,
+    expectedGoalsByCc: 0,
+    ccDebt: false,
+    xgDebt: false,
+    xgotDebt: false,
+    failedReasons: ["Trinca de dívidas unificada com Diagnóstico Clássico (Regra 2)"],
+    blockReason: "",
+    wouldBlockSignal: false,
+    statusBadge: "Sem Débito",
+  };
+}
+
+// ──────────────────────────────────────────────────────────────────────────
 // MASTER AGGREGATOR: EVALUATE ALL RULES FOR A MATCH
 // ──────────────────────────────────────────────────────────────────────────
 export function evaluateAllMatchRules(
   match: Match,
   config: OperationalRulesConfig = DEFAULT_RULES_CONFIG
 ): MatchRulesAnalysis {
+  const matchInfoLog = `[Match ID: ${match?.id || 'unknown'} | ${match?.homeTeam?.name || 'Home'} vs ${match?.awayTeam?.name || 'Away'} | Min: ${match?.minute || 0}]`;
+
   // Parâmetro Central do Radar (Fonte Única da Verdade: Regra 3:1)
   // Unifica centralmente chancesPerGoalRatio para Diagnóstico Clássico, Dívida de Gols e Trinca de Dívidas
   const centralRatio = Math.max(1.0, config.chancesPerGoalRatio || 3.0);
@@ -3159,16 +3046,86 @@ export function evaluateAllMatchRules(
     };
   }
 
-  const codigo31 = evaluateCodigo31(match, unifiedConfig);
-  const tripleDebt = evaluateTripleDebt(match, unifiedConfig);
-  const pressaoVendavel = evaluatePressaoVendavel(match, unifiedConfig);
-  const dominantTrailing = evaluateDominantTrailing(match, unifiedConfig);
-  const superBackDominante = evaluateSuperBackDominante(match, unifiedConfig);
-  const goalDebtClassic = evaluateGoalDebtClassic(match, unifiedConfig);
-  const halfTimeValue = evaluateHalfTimeValue(match, unifiedConfig);
-  const imminentGoal = evaluateImminentGoal(match, unifiedConfig);
-  const trendAlert = evaluateTrendAlert(match, unifiedConfig);
-  const ambasMarcam = evaluateAmbasMarcam(match, unifiedConfig);
+  let codigo31: Codigo31Evaluation;
+  try {
+    codigo31 = evaluateCodigo31(match, unifiedConfig);
+  } catch (err) {
+    console.error(`[RulesEngine] ERROR evaluating evaluateCodigo31 for ${matchInfoLog}:`, err);
+    codigo31 = { shouldAlert: false, reason: "Error evaluating Codigo 31" } as any;
+  }
+
+  let tripleDebt: TripleDebtEvaluation;
+  try {
+    console.debug(`[RulesEngine] Evaluating evaluateTripleDebt for ${matchInfoLog}`);
+    tripleDebt = evaluateTripleDebt(match, unifiedConfig);
+  } catch (err) {
+    console.error(`[RulesEngine] CRITICAL ERROR evaluating evaluateTripleDebt for ${matchInfoLog}:`, err);
+    tripleDebt = { tripleDebtFormed: false, scope: "none", failedReasons: ["Execution error in evaluateTripleDebt"] } as any;
+  }
+
+  let pressaoVendavel: PressaoVendavelEvaluation;
+  try {
+    pressaoVendavel = evaluatePressaoVendavel(match, unifiedConfig);
+  } catch (err) {
+    console.error(`[RulesEngine] ERROR evaluating evaluatePressaoVendavel for ${matchInfoLog}:`, err);
+    pressaoVendavel = { qualified: false, fails: ["Error evaluating Pressao Vendavel"] } as any;
+  }
+
+  let dominantTrailing: DominantTrailingEvaluation;
+  try {
+    dominantTrailing = evaluateDominantTrailing(match, unifiedConfig);
+  } catch (err) {
+    console.error(`[RulesEngine] ERROR evaluating evaluateDominantTrailing for ${matchInfoLog}:`, err);
+    dominantTrailing = { status: "NOT_TRAILING", blockReason: "Error evaluating Dominant Trailing" } as any;
+  }
+
+  let superBackDominante: SuperBackDominanteEvaluation;
+  try {
+    superBackDominante = evaluateSuperBackDominante(match, unifiedConfig);
+  } catch (err) {
+    console.error(`[RulesEngine] ERROR evaluating evaluateSuperBackDominante for ${matchInfoLog}:`, err);
+    superBackDominante = { qualified: false, fails: ["Error evaluating Super Back Dominante"] } as any;
+  }
+
+  let goalDebtClassic: GoalDebtClassicEvaluation;
+  try {
+    goalDebtClassic = evaluateGoalDebtClassic(match, unifiedConfig);
+  } catch (err) {
+    console.error(`[RulesEngine] ERROR evaluating evaluateGoalDebtClassic for ${matchInfoLog}:`, err);
+    goalDebtClassic = { qualified: false, blockReason: "Error evaluating Goal Debt Classic" } as any;
+  }
+
+  let halfTimeValue: HalfTimeValueEvaluation;
+  try {
+    halfTimeValue = evaluateHalfTimeValue(match, unifiedConfig);
+  } catch (err) {
+    console.error(`[RulesEngine] ERROR evaluating evaluateHalfTimeValue for ${matchInfoLog}:`, err);
+    halfTimeValue = { qualified: false, reasoning: "Error evaluating Half Time Value" } as any;
+  }
+
+  let imminentGoal: ImminentGoalEvaluation;
+  try {
+    imminentGoal = evaluateImminentGoal(match, unifiedConfig);
+  } catch (err) {
+    console.error(`[RulesEngine] ERROR evaluating evaluateImminentGoal for ${matchInfoLog}:`, err);
+    imminentGoal = { qualified: false, isImminent: false, triggerReason: "Error evaluating Imminent Goal" } as any;
+  }
+
+  let trendAlert: TrendAlertEvaluation;
+  try {
+    trendAlert = evaluateTrendAlert(match, unifiedConfig);
+  } catch (err) {
+    console.error(`[RulesEngine] ERROR evaluating evaluateTrendAlert for ${matchInfoLog}:`, err);
+    trendAlert = { qualified: false, actionText: "Error evaluating Trend Alert" } as any;
+  }
+
+  let ambasMarcam: AmbasMarcamEvaluation;
+  try {
+    ambasMarcam = evaluateAmbasMarcam(match, unifiedConfig);
+  } catch (err) {
+    console.error(`[RulesEngine] ERROR evaluating evaluateAmbasMarcam for ${matchInfoLog}:`, err);
+    ambasMarcam = { qualified: false, reasoning: "Error evaluating Ambas Marcam" } as any;
+  }
 
   // ──────────────────────────────────────────────────────────────────────────
   // ENGINE DE CONFLUÊNCIA CRUZADA (REGRA 1 - TREND ALERT + REGRA 7 - SURTO 5M)

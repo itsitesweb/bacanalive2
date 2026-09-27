@@ -2055,12 +2055,12 @@ Gols Marcados: ${td.goalsInScope}`,
       const hasEditableImm = this.alertRules.some(
         (r) => r.id === "rule-gol-iminente-surto" || r.id === "rule-imminent-goal"
       );
-      if (!hasEditableImm && this.operationalConfig.enableImminentGoal && (analysis.imminentGoal?.qualified || analysis.imminentGoal?.isImminent) && (analysis.imminentGoal.intensity === "extrema" || analysis.imminentGoal.intensity === "alta")) {
+      if (!hasEditableImm && this.operationalConfig.enableImminentGoal && (analysis.imminentGoal?.qualified || analysis.imminentGoal?.isImminent)) {
         const imm = analysis.imminentGoal;
         const immBucketKey = `imm_${imm.team}_m${Math.floor(match.minute / 5)}_g${match.score.home + match.score.away}`;
         if (!matchBuckets.has(immBucketKey)) {
           matchBuckets.add(immBucketKey);
-          const severity = imm.intensity === "extrema" ? "critical" : "opportunity";
+          const severity = imm.intensity === "extrema" ? "critical" : imm.intensity === "alta" ? "opportunity" : "info";
           const alertLog: AlertLog = {
             id: this.generateUniqueId("py-imm"),
             ruleId: "python-imminent-goal",
