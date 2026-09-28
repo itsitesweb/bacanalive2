@@ -959,6 +959,23 @@ export function AlertsManager({
                       </div>
                     )}
 
+                    {log.tacticalContext && (
+                      <div className="flex flex-wrap items-center gap-1.5 my-2 pt-2 border-t border-slate-800/80 text-[10px] font-mono">
+                        <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-cyan-300 font-bold">
+                          📊 xG: {log.tacticalContext.homeXg.toFixed(2)} - {log.tacticalContext.awayXg.toFixed(2)}
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-emerald-300 font-bold">
+                          🔥 Pressão: {log.tacticalContext.homePressure}% - {log.tacticalContext.awayPressure}%
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-amber-300 font-bold">
+                          🎯 CC: {log.tacticalContext.homeCc} - {log.tacticalContext.awayCc}
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-purple-300 font-bold">
+                          ⚽ Chutes (Alvo): {log.tacticalContext.homeShots} - {log.tacticalContext.awayShots}
+                        </span>
+                      </div>
+                    )}
+
                     <div className="mt-2 pt-2 border-t border-slate-800/60 flex justify-between items-center text-[10px] text-slate-500">
                       <span>Regra: {log.ruleName}</span>
                       {!log.read && (

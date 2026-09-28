@@ -231,6 +231,16 @@ export interface AlertLog {
   category?: string;
   bettingTip?: BettingTipData;
   trendData?: TrendAlertData;
+  tacticalContext?: {
+    homeXg: number;
+    awayXg: number;
+    homePressure: number;
+    awayPressure: number;
+    homeCc: number;
+    awayCc: number;
+    homeShots: number;
+    awayShots: number;
+  };
 }
 
 export interface CrawlerLogItem {

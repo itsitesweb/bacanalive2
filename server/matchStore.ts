@@ -30,6 +30,7 @@ import { calculateDynamicPressureIndex } from "./pressureCalculator";
 import { localConfigManager, LocalConfigFile } from "./localConfig";
 import { isIgnoredLeague } from "../src/utils/leagueFilter";
 import { getLeagueTier, LeagueTier } from "../src/utils/leagueTier";
+import { getMarketRecommendation } from "../src/utils/marketRecommendation";
 
 export function normalizeMatchStatus(rawStatus: any, minute: number, stageCode?: any): MatchStatus {
   const stage = String(stageCode ?? '').trim();
@@ -1828,6 +1829,16 @@ export class MatchStore {
           read: false,
           category: ruleCategory,
           bettingTip: tipToAttach,
+          tacticalContext: {
+            homeXg: match.stats.xG?.home ?? 0,
+            awayXg: match.stats.xG?.away ?? 0,
+            homePressure: match.stats.pressureIndex?.home ?? 50,
+            awayPressure: match.stats.pressureIndex?.away ?? 50,
+            homeCc: match.stats.bigChances?.home ?? 0,
+            awayCc: match.stats.bigChances?.away ?? 0,
+            homeShots: match.stats.shotsOnTarget?.home ?? 0,
+            awayShots: match.stats.shotsOnTarget?.away ?? 0,
+          },
         };
 
         this.pushAlertLog(alertLog, match);
@@ -2051,6 +2062,66 @@ Gols Marcados: ${td.goalsInScope}`,
         }
       }
 
+      // Tactical Market Recommendation ("Entrada Liberada" / "Entrada Imediata (MAX)")
+      const hasTrendAlert = !!analysis.trendAlert?.qualified;
+      const hasImminentAlert = !!analysis.imminentGoal?.qualified || !!analysis.imminentGoal?.isImminent;
+      const isConfluent = !!analysis.imminentGoal?.isConfluent || !!analysis.trendAlert?.isConfluent;
+      const confluenceState = {
+        isConfluent,
+        convictionLevel: isConfluent ? ('MAX' as const) : ('MEDIUM' as const),
+        rule1Triggered: hasTrendAlert,
+        rule2Triggered: hasImminentAlert,
+        triggeredTeam: analysis.imminentGoal?.team || analysis.trendAlert?.team || undefined,
+        teamName: analysis.imminentGoal?.teamName || analysis.trendAlert?.teamName || undefined,
+      };
+      const rec = getMarketRecommendation(match, this.operationalConfig, confluenceState);
+      if (rec && (rec.action === 'ENTER' || rec.action === 'GO_MAX')) {
+        const recKey = `rec_${rec.marketCode}_m${Math.floor(match.minute / 5)}_s${match.score.home}_${match.score.away}`;
+        if (!matchBuckets.has(recKey)) {
+          matchBuckets.add(recKey);
+          const alertLog: AlertLog = {
+            id: this.generateUniqueId("rec"),
+            ruleId: "tactical-market-recommendation",
+            ruleName: `🎯 ${rec.marketTitle.toUpperCase()}`,
+            matchId: match.id,
+            matchTitle: `${match.homeTeam.name} x ${match.awayTeam.name}`,
+            league: match.league,
+            country: match.country || match.leagueCountry || "",
+            leagueCountry: match.leagueCountry || match.country || "",
+            minute: match.minute,
+            score: `${match.score.home} - ${match.score.away}`,
+            severity: rec.action === 'GO_MAX' ? 'critical' : 'opportunity',
+            message: `🎯 ${rec.marketTitle}
+Partida: ${match.homeTeam.name} ${match.score.home}-${match.score.away} ${match.awayTeam.name}
+Minuto: ${match.minute}' | Alvo: @${rec.targetOdd.toFixed(2)}
+📊 Análise Tática: ${rec.reasoning}`,
+            timestamp: new Date().toISOString(),
+            read: false,
+            category: "imminent_goal",
+            bettingTip: {
+              marketCode: rec.marketCode,
+              marketName: rec.marketTitle,
+              targetSelection: rec.marketTitle,
+              probabilityPct: rec.action === 'GO_MAX' ? 85 : 75,
+              confidence: rec.action === 'GO_MAX' ? 'extrema' : 'alta',
+              reasoning: rec.reasoning,
+              actionText: `Entrada recomendada em ${rec.marketTitle} (Alvo @${rec.targetOdd.toFixed(2)})`,
+            },
+            tacticalContext: {
+              homeXg: match.stats.xG?.home ?? 0,
+              awayXg: match.stats.xG?.away ?? 0,
+              homePressure: match.stats.pressureIndex?.home ?? 50,
+              awayPressure: match.stats.pressureIndex?.away ?? 50,
+              homeCc: match.stats.bigChances?.home ?? 0,
+              awayCc: match.stats.bigChances?.away ?? 0,
+              homeShots: match.stats.shotsOnTarget?.home ?? 0,
+              awayShots: match.stats.shotsOnTarget?.away ?? 0,
+            },
+          };
+          this.pushAlertLog(alertLog, match);
+        }
+      }
+
       // Imminent Goal (Surto Ofensivo 5m) Notification (suprimido se a regra editável existir no catálogo)
       const hasEditableImm = this.alertRules.some(
         (r) => r.id === "rule-gol-iminente-surto" || r.id === "rule-imminent-goal"
@@ -2079,12 +2150,22 @@ Minuto: ${match.minute}' | Confiança: ${imm.confidenceScore}%
 Pressão em 5m: ${imm.avgPressure}% (${imm.consistencyPct}% em alta pressão)
 Atividade na Janela: ${imm.dangerousAttacksInWindow} ataques perigosos e ${imm.shotsInWindow} finalizações
 ${imm.teamName ? `Equipe em Blitz: ${imm.teamName}` : ''}
-🎯 Mercado: ${imm.targetMarket || 'Próximo Gol / Back'}
-👉 Ação: ${imm.actionText}`,
+🎯 Mercado: ${rec ? rec.marketTitle : (imm.targetMarket || 'Próximo Gol / Back')} ${rec ? `(Alvo @${rec.targetOdd.toFixed(2)})` : ''}
+👉 Ação: ${rec ? rec.reasoning : imm.actionText}`,
             timestamp: new Date().toISOString(),
             read: false,
             category: "imminent_goal",
             bettingTip: filterTip(imm.bettingTip),
+            tacticalContext: {
+              homeXg: match.stats.xG?.home ?? 0,
+              awayXg: match.stats.xG?.away ?? 0,
+              homePressure: match.stats.pressureIndex?.home ?? 50,
+              awayPressure: match.stats.pressureIndex?.away ?? 50,
+              homeCc: match.stats.bigChances?.home ?? 0,
+              awayCc: match.stats.bigChances?.away ?? 0,
+              homeShots: match.stats.shotsOnTarget?.home ?? 0,
+              awayShots: match.stats.shotsOnTarget?.away ?? 0,
+            },
           };
           this.pushAlertLog(alertLog, match);
         }
@@ -2116,6 +2197,16 @@ ${imm.teamName ? `Equipe em Blitz: ${imm.teamName}` : ''}
             read: false,
             category: "btts",
             bettingTip: filterTip(am.bettingTip),
+            tacticalContext: {
+              homeXg: match.stats.xG?.home ?? 0,
+              awayXg: match.stats.xG?.away ?? 0,
+              homePressure: match.stats.pressureIndex?.home ?? 50,
+              awayPressure: match.stats.pressureIndex?.away ?? 50,
+              homeCc: match.stats.bigChances?.home ?? 0,
+              awayCc: match.stats.bigChances?.away ?? 0,
+              homeShots: match.stats.shotsOnTarget?.home ?? 0,
+              awayShots: match.stats.shotsOnTarget?.away ?? 0,
+            },
           };
           this.pushAlertLog(alertLog, match);
         }
