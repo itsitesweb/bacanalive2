@@ -66,6 +66,7 @@ export const DEFAULT_RULES_CONFIG: OperationalRulesConfig = {
   // Estratégias de Análise Tática e Pressão
   enableAmbasMarcamBTTS: true,
   ambasMarcamConfig: DEFAULT_AMBAS_MARCAM_CONFIG,
+  globalCooldownMinutes: 3,
   postGoalCooldownMinutes: 1,
   crawlerStartupCooldownMinutes: 0.5,
   alertCooldownMinutes: 5,

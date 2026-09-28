@@ -422,7 +422,6 @@ export interface AmbasMarcamConfig {
   maxMinute1T?: number;          // Padrão: 38
   minMinute2T?: number;          // Padrão: 50
   maxMinute2T?: number;          // Padrão: 75
-  cooldownMinutes?: number;      // Padrão: 3 min
   minMinute?: number;
   maxMinute?: number;
   minHomeXg?: number;
@@ -450,7 +449,6 @@ export const DEFAULT_AMBAS_MARCAM_CONFIG: AmbasMarcamConfig = {
   maxMinute1T: 38,
   minMinute2T: 50,
   maxMinute2T: 75,
-  cooldownMinutes: 3,
   minMinute: 25,
   maxMinute: 75,
   minHomeXg: 0.30,
@@ -507,6 +505,7 @@ export interface OperationalRulesConfig {
   ambasMarcamConfig?: AmbasMarcamConfig; // Configuração editável da regra Ambas Marcam (BTTS Sim)
 
   // Cooldown Geral do Sistema
+  globalCooldownMinutes?: number; // Padrão: 3 (Cooldown global unificado entre disparos de regras)
   postGoalCooldownMinutes?: number; // Padrão: 3 (Cooldown geral após qualquer gol na partida em minutos/180s)
   crawlerStartupCooldownMinutes?: number; // Padrão: 3 (Cooldown geral na inicialização do Crawler para estabilização de grade)
   alertCooldownMinutes?: number; // Padrão: 5 (Intervalo mínimo unificado de resguardo / cooldown entre disparos de regras na partida)
@@ -749,7 +748,6 @@ export interface SuperBackDominanteConfig {
   minShotsInWindow?: number;       // Padrão: 2
   minMinute?: number;              // Padrão: 55
   maxMinute?: number;              // Padrão: 78
-  cooldownMinutes?: number;        // Padrão: 3 min
   targetOddDraw?: number;          // Padrão: 1.75
   targetOddLosing?: number;        // Padrão: 2.20
   minAvgPressure?: number;
@@ -775,7 +773,6 @@ export const DEFAULT_SUPER_BACK_DOMINANTE_CONFIG: SuperBackDominanteConfig = {
   minShotsInWindow: 2,
   minMinute: 55,
   maxMinute: 78,
-  cooldownMinutes: 3,
   targetOddDraw: 1.75,
   targetOddLosing: 2.20,
   minAvgPressure: 70,
@@ -828,7 +825,6 @@ export interface DebtGoalsConfig {
   minMinute?: number;          // Padrão: 20
   maxMinute1T?: number;        // Padrão: 38
   maxMinute2T?: number;        // Padrão: 82
-  cooldownMinutes?: number;    // Padrão: 3 min
   postGoalCooldownMinutes?: number;
   minDebtGoals?: number;
   minTotalXg?: number;
@@ -855,7 +851,6 @@ export const DEFAULT_DEBT_GOALS_CONFIG: DebtGoalsConfig = {
   minMinute: 20,
   maxMinute1T: 38,
   maxMinute2T: 82,
-  cooldownMinutes: 3,
   postGoalCooldownMinutes: 3,
 };
 

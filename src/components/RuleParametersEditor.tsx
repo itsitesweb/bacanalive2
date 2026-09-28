@@ -1325,11 +1325,12 @@ export function RuleParametersEditor({
   // --------------------------------------------------------------------------
   // 8. REGRA GENÉRICA / CUSTOMIZADA & CONFIGURAÇÃO GLOBAL DE COOLDOWNS
   // --------------------------------------------------------------------------
+  const globalCooldown = rulesConfig.globalCooldownMinutes ?? 3;
   const postGoalCooldown = rulesConfig.postGoalCooldownMinutes ?? 3;
   const alertCooldown = rulesConfig.alertCooldownMinutes ?? 5;
 
-  const updateGlobalCooldowns = (patch: { postGoalCooldownMinutes?: number; alertCooldownMinutes?: number }) => {
-    saveConfigPatch(patch, "Cooldowns globais (Pós-Gol e Alertas) atualizados com sucesso!");
+  const updateGlobalCooldowns = (patch: { globalCooldownMinutes?: number; postGoalCooldownMinutes?: number; alertCooldownMinutes?: number }) => {
+    saveConfigPatch(patch, "Cooldowns globais atualizados com sucesso!");
   };
 
   return (
@@ -1337,7 +1338,7 @@ export function RuleParametersEditor({
       <div className="flex items-center justify-between pb-2 border-b border-slate-800">
         <div className="flex items-center gap-2">
           <Clock className="w-4 h-4 text-purple-400" />
-          <span className="font-bold text-xs text-white">Resguardo Pós-Gol (Cooldown) & Cooldown Geral de Alertas</span>
+          <span className="font-bold text-xs text-white">Cooldowns Globais & Resguardo do Sistema</span>
         </div>
         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-950 text-purple-300 border border-purple-700/60">
           Centralizado no Motor
@@ -1345,10 +1346,47 @@ export function RuleParametersEditor({
       </div>
 
       <p className="text-xs text-slate-400 leading-relaxed">
-        Configuração unificada aplicável a todas as regras do motor para evitar disparos repetitivos e resguardar o sistema pós-gols:
+        Configuração unificada aplicável a todas as regras do motor para evitar disparos repetitivos e resguardar o sistema:
       </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* Bloco 0: Cooldown Global de Alertas */}
+        <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-purple-400 font-bold text-xs flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" /> Cooldown Global
+            </label>
+            <span className="text-xs font-mono font-bold text-purple-300">{globalCooldown} min</span>
+          </div>
+          <input
+            type="number"
+            min={1}
+            max={30}
+            value={globalCooldown}
+            onChange={(e) => updateGlobalCooldowns({ globalCooldownMinutes: parseInt(e.target.value) || 3 })}
+            className="w-full bg-slate-950 border border-slate-700 focus:border-purple-500 rounded-lg px-2.5 py-1.5 text-xs text-center font-mono text-white font-bold"
+          />
+          <div className="flex items-center gap-1 flex-wrap pt-1">
+            {[2, 3, 5, 10].map((val) => (
+              <button
+                key={val}
+                type="button"
+                onClick={() => updateGlobalCooldowns({ globalCooldownMinutes: val })}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold transition ${
+                  globalCooldown === val
+                    ? "bg-purple-500 text-slate-950 font-black"
+                    : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
+                }`}
+              >
+                {val} min
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-slate-500 leading-tight">
+            ⏱️ Cooldown Global de Alertas (Padrão: <strong>3 min</strong>).
+          </p>
+        </div>
+
         {/* Bloco 1: Cooldown Pós-Gol */}
         <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
           <div className="flex items-center justify-between">
@@ -1382,7 +1420,7 @@ export function RuleParametersEditor({
             ))}
           </div>
           <p className="text-[10px] text-slate-500 leading-tight">
-            Congela novos alertas de Back/Pressão por {postGoalCooldown} minuto(s) após qualquer gol na partida. (Padrão: <strong>3 min</strong>)
+            Congela novos alertas por {postGoalCooldown} minuto(s) após gol. (Padrão: <strong>3 min</strong>)
           </p>
         </div>
 
@@ -1390,7 +1428,7 @@ export function RuleParametersEditor({
         <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-cyan-400 font-bold text-xs flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5" /> Cooldown Geral de Alertas
+              <Clock className="w-3.5 h-3.5" /> Cooldown Geral Feed
             </label>
             <span className="text-xs font-mono font-bold text-cyan-300">{alertCooldown} min</span>
           </div>
@@ -1419,7 +1457,7 @@ export function RuleParametersEditor({
             ))}
           </div>
           <p className="text-[10px] text-slate-500 leading-tight">
-            Intervalo mínimo unificado entre repetições de alertas na mesma partida. (Padrão: <strong>5 min</strong>)
+            Intervalo mínimo entre repetições no mesmo jogo. (Padrão: <strong>5 min</strong>)
           </p>
         </div>
       </div>
