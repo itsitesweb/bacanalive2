@@ -3057,7 +3057,6 @@ export function evaluateAllMatchRules(
 
   let tripleDebt: TripleDebtEvaluation;
   try {
-    console.debug(`[RulesEngine] Evaluating evaluateTripleDebt for ${matchInfoLog}`);
     tripleDebt = evaluateTripleDebt(match, unifiedConfig);
   } catch (err) {
     console.error(`[RulesEngine] CRITICAL ERROR evaluating evaluateTripleDebt for ${matchInfoLog}:`, err);
